@@ -28,7 +28,7 @@ typedef enum {
     BIT_ERROR_HARD      = 1,
     BIT_ERROR_WINDOWS   = 2,
     BIT_ERROR_LINUX     = 3,
-    BIT_ERROR_OWNER     = 4,
+    BIT_ERROR_FAULT     = 4,
     BIT_ERROR_FILE      = 8,
     BIT_ERROR_MEMORY    = 12,
     BIT_ERROR_STRUCT    = 16,
@@ -40,20 +40,20 @@ typedef enum {
     ERROR_HARD          = 1 << BIT_ERROR_HARD,
     ERROR_WINDOWS       = 1 << BIT_ERROR_WINDOWS,
     ERROR_LINUX         = 1 << BIT_ERROR_LINUX,
-    ERROR_OWNER         = 1 << BIT_ERROR_OWNER,
+    ERROR_FAULT         = 1 << BIT_ERROR_FAULT,
     ERROR_FILE          = 1 << BIT_ERROR_FILE,
     ERROR_MEMORY        = 1 << BIT_ERROR_MEMORY,
     ERROR_STRUCT        = 1 << BIT_ERROR_STRUCT,
 } ErrorCode;
 
 typedef enum {
-    ERROR_OS            = 1 << BIT_ERROR_OWNER,
-    ERROR_USER          = 2 << BIT_ERROR_OWNER,
-    ERROR_LOCAL         = 3 << BIT_ERROR_OWNER,
-    ERROR_FUNCTION      = 4 << BIT_ERROR_OWNER,
-    ERROR_STDIN         = 5 << BIT_ERROR_OWNER,
-    ERROR_STDOUT        = 6 << BIT_ERROR_OWNER,
-    ERROR_STDERR        = 7 << BIT_ERROR_OWNER
+    ERROR_OS            = 1 << BIT_ERROR_FAULT,
+    ERROR_CKIT          = 2 << BIT_ERROR_FAULT,
+    ERROR_USER          = 3 << BIT_ERROR_FAULT,
+    ERROR_FUNCTION      = 4 << BIT_ERROR_FAULT,
+    ERROR_STDIN         = 5 << BIT_ERROR_FAULT,
+    ERROR_STDOUT        = 6 << BIT_ERROR_FAULT,
+    ERROR_STDERR        = 7 << BIT_ERROR_FAULT
 } ErrorOwner;
 
 typedef enum {
@@ -81,19 +81,20 @@ typedef enum {
 } ErrorBehaviourBit;
 
 typedef enum {
-    ERROR_DO_NONE   = 0 << 0,
-    ERROR_DO_ABORT  = 1 << BIT_ERROR_DO_ABORT
-} ErrorBehaviour;
+    ERROR_ACTION_IGNORE,
+    ERROR_ACTION_RETURN,
+    ERROR_ACTION_ABORT
+} ErrorAction;
 
-#define ERROR_WIN_FILES_UNCLOSED (ERROR_SOFT | ERROR_WINDOWS | ERROR_UNCLOSED)
-#define ERROR_WIN_INVALID_STDIN (ERROR_HARD | ERROR_WINDOWS | ERROR_INVALID)
+#define ERROR_WIN_INVALID_STDIN (ERROR_HARD | ERROR_WINDOWS | ERROR_STDIN | ERROR_INVALID)
+#define ERROR_WIN_FILES_UNCLOSED (ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNCLOSED)
 
 #define structerror(code) ((code >> BIT_ERROR_STRUCT) & 15)
 #define memoryerror(code) ((code >> BIT_ERROR_MEMORY) & 15)
 
-void __throw(Context context, ErrorCode code, const char* msg);
-void __throwf(Context context, ErrorCode code, const char* fmt, ...);
-void callbackerror(void* userdata, ErrorBehaviour(*callback)(void* _userdata, Context _context, ErrorCode _code, const char* msg));
+void throwcallback(void* userdata, ErrorAction (*callback)(void* _userdata, Context _context, ErrorCode _code, const char* msg));
+ErrorAction __throw(Context context, ErrorCode code, const char* msg);
+ErrorAction __throwf(Context context, ErrorCode code, const char* fmt, ...);
 
 #define throw(code, msg) __throw(CONTEXT, code, msg)
 #define throwf(code, fmt, ...) __throwf(CONTEXT, code, fmt, ##__VA_ARGS__)
