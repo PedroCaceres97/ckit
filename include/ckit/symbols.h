@@ -9,8 +9,8 @@
 #define CKIT_BUFFERS_SYMBOL(a) CKIT_PREFIX(CONCAT2(a, _buffers))
 
 #define CKIT_BUFFERS_SYMBOLS(buffers, index, next, type, count, size)   \
-    static thread_local type buffers[count][size] = {0};                \
-    static thread_local uint32_t index = 0;                             \
+    static _Thread_local type buffers[count][size] = {0};               \
+    static _Thread_local uint32_t index = 0;                            \
     static inline type* next() {                                        \
         if (index == count) { index = 0; }                              \
         return buffers[index++];                                        \

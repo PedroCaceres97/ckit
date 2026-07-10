@@ -1,4 +1,3 @@
-#include <__stdarg_va_list.h>
 #include <ckit/error.h>
 #include <ckit/config.h>
 #include <ckit/stdio.h>
@@ -11,7 +10,11 @@ void throwcallback(void* userdata, ErrorAction (*callback)(void* _userdata, Cont
     if (callback) { ckit_callback = callback; }
 }
 ErrorAction __throw(Context context, ErrorCode code, const char* msg) {
-    return ckit_callback(ckit_userdata, context, code, msg);
+    ErrorAction action = ckit_callback(ckit_userdata, context, code, msg);
+    if (action == ERROR_ACTION_ABORT) {
+        exit(-1);
+    }
+    return action;
 }
 ErrorAction __throwf(Context context, ErrorCode code, const char* fmt, ...) {
     char buf[CKIT_FORMAT_BUFFER_SIZE] = {0};
@@ -19,5 +22,9 @@ ErrorAction __throwf(Context context, ErrorCode code, const char* fmt, ...) {
     va_start(args, fmt);
     vsnformat(buf, sizeof(buf), true, fmt, args);
     va_end(args);
-    return ckit_callback(ckit_userdata, context, code, buf);
+    ErrorAction action = ckit_callback(ckit_userdata, context, code, buf);
+    if (action == ERROR_ACTION_ABORT) {
+        exit(-1);
+    }
+    return action;
 }

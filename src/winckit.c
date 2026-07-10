@@ -1,5 +1,4 @@
 #include <ckit/info.h>
-#include <handleapi.h>
 
 #ifdef INFO_OS_WINDOWS
 
@@ -85,83 +84,58 @@ void winckit_quit() {
     files[1].handle = INVALID_HANDLE_VALUE;
     files[2].handle = INVALID_HANDLE_VALUE;
     files[0].attributes &= ~ATTRIBUTE_ISOPEN;
-    files[1].attributes &= ~ATTRIBUTE_ISOPEN;
-    files[2].attributes &= ~ATTRIBUTE_ISOPEN;
+    files[1].attributes &= ~(ATTRIBUTE_ISOPEN | ATTRIBUTE_ANSI);
+    files[2].attributes &= ~(ATTRIBUTE_ISOPEN | ATTRIBUTE_ANSI);
 #if !CKIT_DONT_ENABLE_ANSI_FOR_WINDOWS
-    GetConsoleMode(files[1].handle, &stdout_mode);
-    GetConsoleMode(files[2].handle, &stderr_mode);
-    SetConsoleMode(files[1].handle, stdout_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT);
-    SetConsoleMode(files[2].handle, stderr_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT);
+    SetConsoleMode(files[1].handle, stdout_mode);
+    SetConsoleMode(files[2].handle, stderr_mode);
 #endif
     throwif(back < FILES_STACK, ERROR_WIN_FILES_UNCLOSED, CKIT_ERROR_FILES_UNCLOSED);
 }
-
 PREMAIN(winckit_init) {
+    atexit(winckit_quit);
     files[0].handle = GetStdHandle(STD_INPUT_HANDLE);
     files[1].handle = GetStdHandle(STD_OUTPUT_HANDLE);
     files[2].handle = GetStdHandle(STD_ERROR_HANDLE);
+    if (files[0].handle == INVALID_HANDLE_VALUE) {
+        throw(ERROR_WIN_STDIN_INVALID, CKIT_ERROR_STDIN_INVALID);
+        return;
+    }
+    if (files[1].handle == INVALID_HANDLE_VALUE) {
+        throw(ERROR_WIN_STDOUT_INVALID, CKIT_ERROR_STDOUT_INVALID);
+        return;
+    }
+    if (files[2].handle == INVALID_HANDLE_VALUE) {
+        throw(ERROR_WIN_STDERR_INVALID, CKIT_ERROR_STDERR_INVALID);
+        return;
+    }
     files[0].attributes |= ATTRIBUTE_ISOPEN;
     files[1].attributes |= ATTRIBUTE_ISOPEN;
     files[2].attributes |= ATTRIBUTE_ISOPEN;
 #if !CKIT_DONT_ENABLE_ANSI_FOR_WINDOWS
-    failif(files[0].handle == INVALID_HANDLE_VALUE, );
-    if (files[1].handle == INVALID_HANDLE_VALUE) {
-
+    if (!GetConsoleMode(files[1].handle, &stdout_mode)) {
+        throw(ERROR_WIN_STDOUT_MODE, CKIT_ERROR_GET_MODE);
+        return;
     }
-    GetConsoleMode(files[1].handle, &stdout_mode);
-    GetConsoleMode(files[2].handle, &stderr_mode);
-    SetConsoleMode(files[1].handle, stdout_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT);
-    SetConsoleMode(files[2].handle, stderr_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT);
+    if (!GetConsoleMode(files[2].handle, &stderr_mode)) {
+        throw(ERROR_WIN_STDERR_MODE, CKIT_ERROR_GET_MODE);
+        return;
+    }
+    if (!SetConsoleMode(files[1].handle, stdout_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT)) {
+        throw(ERROR_WIN_STDOUT_VT, CKIT_ERROR_ENABLE_VT);
+        return;
+    }
+    if (!SetConsoleMode(files[2].handle, stderr_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT)) {
+        throw(ERROR_WIN_STDERR_VT, CKIT_ERROR_ENABLE_VT);
+        return;
+    }
+    files[1].attributes |= ATTRIBUTE_ANSI;
+    files[2].attributes |= ATTRIBUTE_ANSI;
 #endif
 }
 
-void pedrolib_os_quit() {
-    if (files.base.size) {
-        log(LOG_WARNING, ERROR_FILES_NOT_CLOSED " (%zu)", files.base.size);
-    }
-    fslab_foreach(&files, NULL, pedrolib_files_close);
-    fslab_destroy(&files);
-#if ENABLE_ANSI_ON_INIT
-    SetConsoleMode(pedrolib_stdout.handle, stdout_mode);
-    SetConsoleMode(pedrolib_stderr.handle, stderr_mode);
-#endif
-    pedrolib_stdin.handle = INVALID_HANDLE_VALUE;
-    pedrolib_stdout.handle = INVALID_HANDLE_VALUE;
-    pedrolib_stderr.handle = INVALID_HANDLE_VALUE;
-    pedrolib_stdin.open = false;
-    pedrolib_stdout.open = false;
-    pedrolib_stderr.open = false;
-}
-
-File*       file_in() {
-    return &pedrolib_stdin;
-}
-File*       file_out() {
-    return &pedrolib_stdout;
-}
-File*       file_err() {
-    return &pedrolib_stderr;
-}
-
-bool        file_standard   (File* file) {
-    return file == &pedrolib_stdin || file == &pedrolib_stdout || file == &pedrolib_stderr;
-}
-bool        file_readable   (File* file) {
-    return file->attributes & ATTRIBUTE_READ;
-}
-bool        file_writable   (File* file) {
-    return file->attributes & ATTRIBUTE_WRITE;
-}
-
-bool        file_isopen     (File* file) {
-    return file->open;
-}
-bool        file_isansi     (File* file) {
-    return file->attributes & ATTRIBUTE_ANSI;
-}
-
-void        flushinput  () {
-    FlushConsoleInputBuffer(pedrolib_stdin.handle);
+void flushinput() {
+    FlushConsoleInputBuffer(files[0].handle);
 }
 
 static void printlast(Context context) {

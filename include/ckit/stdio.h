@@ -75,5 +75,6 @@ void printinform(Context context, PrintLog level, const char* fmt, ...);
 void printformat(const char* fmt, ...);
 
 void getinput();
+void flushinput();
 
 #endif /* __CKIT_STDIO_H__ */
