@@ -1,3 +1,9 @@
+# =====================================
+# Makefile template v0.6
+# =====================================
+# EDIT WITH HIGH PRECAUTION.
+# =====================================
+
 CC := cl
 AR := lib
 LD := link
@@ -37,6 +43,10 @@ endif
 ifeq ($(ENABLE_SANITIZERS),1)
 	CFLAGS += /fsanitize=address
 	LDFLAGS += /DEBUG
+endif
+
+ifeq ($(DISABLE_DEPRACATED_WARNINGS),1)
+	CFLAGS += -D_CRT_SECURE_NO_WARNINGS
 endif
 
 CFLAGS += $(EXTRA_CFLAGS)

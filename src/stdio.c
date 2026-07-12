@@ -1,9 +1,10 @@
 #include <ckit/stdio.h>
+#include <ckit/error.h>
 #include <ckit/config.h>
 #include <ckit/symbols.h>
 
 CKIT_BUFFERS(format, char, CKIT_FORMAT_BUFFER_COUNT, CKIT_FORMAT_BUFFER_SIZE)
-// CKIT_BUFFERS(getline, char, CKIT_GETLINE_BUFFER_COUNT, CKIT_GETLINE_BUFFER_SIZE + 64)
+CKIT_BUFFERS(getinput, char, CKIT_GETLINE_BUFFER_COUNT, CKIT_GETLINE_BUFFER_SIZE + 64)
 
 typedef struct {
     const char* title;
@@ -32,8 +33,7 @@ const char* format(const char* fmt, ...) {
     return buf;
 }
 size_t fformat(int fd, const char* fmt, ...) {
-    if (attributes(fd) == ATTRIBUTE_NONE || !fmt) { return 0; }
-
+    if (!fmt) { return 0; }
     va_list args;
     va_start(args, fmt);
     char buf[CKIT_FORMAT_BUFFER_SIZE] = {0};
@@ -109,4 +109,15 @@ void printformat(const char* fmt, ...) {
     size_t written = vsnformat(buf, CKIT_FORMAT_BUFFER_SIZE, true, fmt, args);
     writefile(1, buf, written);
     va_end(args);
+}
+
+size_t readinput(char* buf, size_t max) {
+    return readfile(0, buf, max);
+}
+const char* getinput() {
+    char* buffer = ckit_getinput_next();
+    size_t readed = readfile(0, buffer, CKIT_GETLINE_BUFFER_SIZE + 64);
+    memset(&buffer[CKIT_GETLINE_BUFFER_SIZE], 0, 64);
+    throwif(readed > CKIT_GETLINE_BUFFER_SIZE, ERROR_SOFT | ERROR_STDIN, CKIT_ERROR_GETINPUT_OVERFLOW);
+    return buffer;
 }

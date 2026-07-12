@@ -36,7 +36,7 @@ FileAttributes attributes(int fd);
 bool copydir(const char* dirpath, const char* destpath);
 bool checkdir(const char* dirpath);
 bool createdir(const char* dirpath);
-bool removedir(const char* dirpath);
+bool removedir(const char* dirpath, bool force);
 bool renamedir(const char* dirpath, const char* destpath);
 
 bool copyfile(const char* filepath, const char* destpath);
@@ -51,6 +51,7 @@ size_t dumpfile(const char* filepath, char* buf, size_t max);
 size_t readfile(int fd, char* buf, size_t max);
 size_t writefile(int fd, const char* buf, size_t max);
 size_t printfile(int fd, const char* buf);
+size_t sizefile(int fd);
 size_t tellfile(int fd);
 size_t seekfile(int fd, ptrdiff_t offset, FileSeek origin);
 
@@ -74,7 +75,8 @@ void printlog(PrintLog level, const char* fmt, ...);
 void printinform(Context context, PrintLog level, const char* fmt, ...);
 void printformat(const char* fmt, ...);
 
-void getinput();
 void flushinput();
+size_t readinput(char* buf, size_t max);
+const char* getinput();
 
 #endif /* __CKIT_STDIO_H__ */

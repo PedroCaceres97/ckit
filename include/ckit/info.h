@@ -98,7 +98,7 @@ typedef struct Context {
 } Context;
 
 #define ALIAS(alias)    ((Context){(alias), FILENAME, FUNCTION, LINE})
-#define CONTEXT         ((Context){NULL, FILENAME, FUNCTION, LINE})
+#define CONTEXT_HERE    ((Context){NULL, FILENAME, FUNCTION, LINE})
 #define CONTEXT_ARGS(context) context.file, context.line, context.func
 
 #ifdef INFO_COMPILER_MSVC

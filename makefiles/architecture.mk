@@ -1,3 +1,9 @@
+# =====================================
+# Makefile template v0.6
+# =====================================
+# EDIT WITH HIGH PRECAUTION.
+# =====================================
+
 SRC_FOLDER := src
 OBJ_FOLDER := obj
 BIN_FOLDER := bin

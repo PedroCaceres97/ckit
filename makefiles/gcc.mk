@@ -1,3 +1,9 @@
+# =====================================
+# Makefile template v0.6
+# =====================================
+# EDIT WITH HIGH PRECAUTION.
+# =====================================
+
 CC := gcc
 AR := gcc-ar
 
@@ -36,6 +42,10 @@ endif
 ifeq ($(ENABLE_SANITIZERS),1)
 	CFLAGS += -fsanitize=address,undefined
 	LDFLAGS += -fsanitize=address,undefined
+endif
+
+ifeq ($(DISABLE_DEPRACATED_WARNINGS),1)
+	CFLAGS += -Wno-deprecated-declarations
 endif
 
 CFLAGS += $(EXTRA_CFLAGS)

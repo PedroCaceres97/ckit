@@ -1,20 +1,21 @@
 # =====================================
 # Makefile template v0.6
 # =====================================
-# 
-# This project provides a reusable Makefile template for C projects.
-# The template supports multiple build targets and multiple compiler toolchains.
-# Every .c source file located inside the tests/ directory is treated as an independent executable.
-# Tests are discovered automatically without requiring manual registration. 
-# Additional libraries and include directories may be configured globally 
-# or individually through variables in config.mk.
 #
-# Most project-specific settings are placed in config.mk, while the build logic 
-# is split into small modules under the makefiles/ directory.
+# Reusable Makefile template for C projects.
 #
-# Project Structure:
+# Supports multiple build targets, compiler toolchains, and automatic
+# test discovery. Every .c source file inside the `tests/` directory is
+# compiled as an independent executable.
+#
+# This template separates project configuration from build logic. 
+# Most projects only require editing `config.mk`, while the build rules
+# remain in the `Makefile` and the modules under `makefiles/`.
+#
+# Project Layout:
 # .
 # ├── bin/
+# │   └── tests/
 # ├── debug/
 # ├── include/
 # ├── lib/
@@ -32,38 +33,56 @@
 # ├── config.mk
 # └── Makefile
 #
-# Build artifacts are generated automatically:
-# 	bin/ – Executables.
-# 	lib/ – Static libraries.
-# 	obj/ – Object files and dependency files.
-# 	debug/ – Debug equivalents of the previous directories.
+# Generated Directories:
+#   `bin/`         Executable targets.
+#   `bin/tests/`   Test executables.
+#   `lib/`         Static libraries.
+#   `obj/`         Object and dependency files.
+#   `debug/`       Debug build output.
 #
-# Phonies:
-# 	all (default): Builds every target listed in TARGETS.
-# 	clean: removes all generated files.
-# 	debug: same as "make all MODE=debug"
-# 	tests: builds every test
-#	tests-debug: same as "make tests MODE=debug"
+# Phony Targets:
+#   all          Build every target listed in TARGETS (default).
+#   clean        Remove all generated files.
+#   debug        Equivalent to "make MODE=debug".
+#   tests        Build every test under tests/.
+#   tests-debug  Equivalent to "make MODE=debug tests".
 #
 # Toolchains:
-# The compiler can be selected when invoking Make
-# 	make TOOLCHAIN=gcc 
-# 	make TOOLCHAIN=msvc
-#	make TOOLCHAIN=clang (MSYS2 version of windows)
-#	make TOOLCHAIN=clang-msvc (Official version of windows)
+#   make TOOLCHAIN=gcc
+#   make TOOLCHAIN=msvc
+#   make TOOLCHAIN=clang        (GNU-style Clang)
+#   make TOOLCHAIN=clang-msvc   (MSVC-compatible Clang)
 #
-# Each toolchain module defines compiler commands, 
-# compiler and linker flags, library naming conventions, 
-# and file extensions appropriate for the selected environment.
+# Each toolchain module defines the compiler and archiver commands,
+# compilation and linking flags, library naming conventions, and file
+# extensions required by its target environment.
+#
+# gcc
+#   Uses the GNU toolchain (gcc, gcc-ar). Produces ELF binaries on Unix-like
+#   systems and PE binaries through MinGW on Windows. Generates .o objects,
+#   .a static libraries, and dependency files automatically.
+#
+# msvc
+#   Uses Microsoft's native compiler and linker (cl, link, lib). Produces
+#   .obj object files and .lib static libraries using the Microsoft ABI and
+#   command-line conventions. Intended for Visual Studio or Build Tools.
+#
+# clang
+#   Uses Clang with the GNU driver (clang, llvm-ar). Compatible with GCC-style
+#   command-line options and intended for Unix-like environments or Windows
+#   through MinGW/MSYS2. Produces the same file formats as gcc.
+#
+# clang-msvc
+#   Uses the official LLVM/Clang compiler targeting the Microsoft ABI.
+#   Generates MSVC-compatible .lib libraries while keeping the Clang/GNU-style
+#   command-line interface. Intended for the official LLVM distribution on
+#   Windows and interoperable with MSVC libraries.
 #
 # =====================================
 # EDIT WITH HIGH PRECAUTION.
 # =====================================
 
 include config.mk
-ifeq ($(ENABLE_LTO),1)
-    MODE := debug
-endif 
 ifeq ($(ENABLE_SANITIZERS),1)
     MODE := debug
 endif

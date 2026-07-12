@@ -1,32 +1,69 @@
 # =====================================
 # config.mk template v0.6
 # =====================================
-# This file simplifies the use of global custom building options
 #
-# How this works
+# This file contains the project-specific build configuration.
+# Most projects only need to edit this file; the build logic is
+# implemented by the Makefile and the modules under makefiles/.
 #
-#	- TARGETS: A list with the names of all targets.
-#				Each target must comply:
-# 					- [target]_DIR = Source files, all subdirs will be scanned
-#					- [target]_TYPE = Either: executable, static or shared
-#				Optionally:
-#					- [target]_LIBS = libraries to be link againts without -l flag
-#					- [target]_LIBS_PATH = The path where each optional library to be link againts lives without -L flag
+# Configuration:
 #
-#	- CVERSION: c version number (-std=gnuX or /std:cX)
-#	- EXTRA_CFLAGS: Optional compiler flags
-# 	- EXTRA_LDFLAGS : Optional linker flags
-#	- EXTRA_INCLUDES: Optional include directories without -I flag
-#	
-#	- TESTS_LIBS: Optional libraries to be link againts all tests without -l flag
-#	- TESTS_LIBS_PATH: The path where each optional library to be link againts all tests lives without -L flag
-#	
-#	- PRE_BUILD: Command to run before target build
-#	- POST_BUILD: Commant to run after target build
+#   TARGETS
+#       Space-separated list of build targets.
 #
-#	- ENABLE_LTO: Set to 1 to enable -flto
-#	- ENABLE_SANITIZERS: Set to 1 to enable -fsanitize=address,undefined (undefined is not supported on msvc)
-#	- ENABLE_WARNINGS_AS_ERRORS: Set to 1 to enable -Werror
+#   For each target listed in TARGETS:
+#       [target]_DIR
+#           Directory containing the target source files.
+#           All subdirectories are scanned recursively.
+#
+#       [target]_TYPE
+#           Target type: executable, static or shared.
+#
+#       [target]_LIBS
+#           Optional libraries to link against.
+#           Specify library names only (without the platform prefix/suffix).
+#
+#       [target]_LIBS_PATH
+#           Optional library search directories.
+#           Specify paths only (without -L or /LIBPATH:).
+#
+#   CVERSION
+#       C language version passed to the selected toolchain.
+#
+#   EXTRA_CFLAGS
+#       Additional compiler flags.
+#
+#   EXTRA_LDFLAGS
+#       Additional linker flags.
+#
+#   EXTRA_INCLUDES
+#       Additional include directories.
+#       Specify paths only (without -I or /I).
+#
+#   TESTS_LIBS
+#       Libraries linked against every test executable (without the platform prefix/suffix).
+#
+#   TESTS_LIBS_PATH
+#       Library search directories used by every test executable (without -L or /LIBPATH:).
+#
+#   PRE_BUILD
+#       Command executed before building each target.
+#
+#   POST_BUILD
+#       Command executed after building each target.
+#
+#   ENABLE_LTO
+#       Enables Link Time Optimization when supported by the toolchain.
+#
+#   ENABLE_SANITIZERS
+#       Enables AddressSanitizer and UndefinedBehaviorSanitizer when
+#       supported by the selected toolchain. Forces debug mode.
+#
+#   ENABLE_WARNINGS_AS_ERRORS
+#       Treats all compiler warnings as errors.
+#
+#   DISABLE_DEPRACATED_WARNINGS
+#       Disables depracated functions warnings.
 #
 # =====================================
 # EDIT AT EASE
@@ -62,3 +99,4 @@ POST_BUILD :=
 ENABLE_LTO := 0
 ENABLE_SANITIZERS := 0
 ENABLE_WARNINGS_AS_ERRORS := 0
+DISABLE_DEPRACATED_WARNINGS := 1
