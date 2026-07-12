@@ -3,16 +3,14 @@
 #include <ckit/stdio.h>
 
 static void default_callback(void* userdata, Context context, ErrorCode code, const char* msg) {
-#ifdef INFO_OS_WINDOWS
-    if (code == ERROR_STDIN_INVALID || 
-        code == ERROR_STDOUT_INVALID ||
-        code == ERROR_STDERR_INVALID) {
-            fprintf(stderr, "[WINSTART]: %s", msg);
-    }
-#endif
     (void)userdata;
-    if (code & ERROR_SOFT) { printlog(PRINT_WARNING, msg); }
-    else if (code & ERROR_HARD) { printinform(context, PRINT_ERROR, msg); exit(-1); }
+    PrintLog log = 0;
+    printf("LOG: %s", msg);
+    return;
+    if (code & ERROR_WINDOWS) { log = PRINT_WINAPI; }
+    else if (code & ERROR_POSIX) { log = PRINT_POSIX; }
+    if (code & ERROR_SOFT) { printlog(log | PRINT_WARNING, msg); }
+    else if (code & ERROR_HARD) { printinform(context, log | PRINT_ERROR, msg); exit(-1); }
 }
 
 static void* ckit_userdata = NULL;

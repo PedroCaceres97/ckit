@@ -67,7 +67,9 @@ typedef enum {
     PRINT_SUCCESS,
     PRINT_WARNING,
     PRINT_ERROR,
-    PRINT_FATAL
+    PRINT_FATAL,
+    PRINT_WINAPI = 16,
+    PRINT_POSIX = 32
 } PrintLog;
 
 void print(const char* buf);

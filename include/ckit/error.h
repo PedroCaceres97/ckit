@@ -18,11 +18,11 @@
 #define ERRMSG_UNOPENED             "Trying to operate over an unopened file"
 #define ERRMSG_UNREADABLE           "File missing ATTRIBUTE_READ"
 #define ERRMSG_UNWRITEABLE          "File missing ATTRIBUTE_WRITE"
+#define ERRMSG_UNCLOSED             "Detected unclosed files"
 #define ERRMSG_STDCLOSE             "Standard file is not closeable"
 #define ERRMSG_INVALID_FD           "Invalid file descriptor (negative or bigger than 255)"
 #define ERRMSG_FILE_DOESNT_EXIST    "File does not exist"
 #define ERRMSG_FILES_MAX_REACHED    "Unable to open more files than 256 (std included)"
-#define ERRMSG_FILES_UNCLOSED       "Detected unclosed files at terminate"
 
 #define ERRMSG_COPYFILE_REPLACE     "Cant copy a file into an already existent file"
 #define ERRMSG_RENAMEFILE_REPLACE   "Cant rename a file into an already existent file"
@@ -137,6 +137,9 @@ typedef enum {
 
 #define ERROR_USER_NULLPTR      (ERROR_SOFT_USER | ERROR_NULLPTR)
 #define ERROR_USER_UNOPENED     (ERROR_SOFT_USER | ERROR_UNOPENED)
+#define ERROR_USER_UNREADABLE   (ERROR_SOFT_USER | ERROR_UNREADABLE)
+#define ERROR_USER_UNWRITEABLE  (ERROR_SOFT_USER | ERROR_UNWRITEABLE)
+#define ERROR_USER_UNCLOSED     (ERROR_SOFT_USER | ERROR_UNCLOSED)
 #define ERROR_USER_STDCLOSE     (ERROR_SOFT_USER | ERROR_STDCLOSE)
 #define ERROR_USER_EXISTING     (ERROR_SOFT_USER | ERROR_EXISTING)
 #define ERROR_USER_UNEXISTING   (ERROR_SOFT_USER | ERROR_UNEXISTING)

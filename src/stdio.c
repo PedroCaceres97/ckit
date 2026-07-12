@@ -12,13 +12,25 @@ typedef struct {
     int         fd;
 } LogData;
 
-static LogData LogDatas[6] = {
-    [PRINT_INFO]       = (LogData){.title = CKIT_INFO_TITLE,     .color = CKIT_INFO_COLOR,      .fd = 1, },
-    [PRINT_DEBUG]      = (LogData){.title = CKIT_DEBUG_TITLE,    .color = CKIT_DEBUG_COLOR,     .fd = 1, },
-    [PRINT_SUCCESS]    = (LogData){.title = CKIT_SUCCESS_TITLE,  .color = CKIT_SUCCESS_COLOR,   .fd = 1, },
-    [PRINT_WARNING]    = (LogData){.title = CKIT_WARNING_TITLE,  .color = CKIT_WARNING_COLOR,   .fd = 2, },
-    [PRINT_ERROR]      = (LogData){.title = CKIT_ERROR_TITLE,    .color = CKIT_ERROR_COLOR,     .fd = 2, },
-    [PRINT_FATAL]      = (LogData){.title = CKIT_FATAL_TITLE,    .color = CKIT_FATAL_COLOR,     .fd = 2, }
+static LogData LogDatas[18] = {
+    [PRINT_INFO]            = (LogData){.title = CKIT_INFO_TITLE,                       .color = CKIT_INFO_COLOR,       .fd = 1, },
+    [PRINT_DEBUG]           = (LogData){.title = CKIT_DEBUG_TITLE,                      .color = CKIT_DEBUG_COLOR,      .fd = 1, },
+    [PRINT_SUCCESS]         = (LogData){.title = CKIT_SUCCESS_TITLE,                    .color = CKIT_SUCCESS_COLOR,    .fd = 1, },
+    [PRINT_WARNING]         = (LogData){.title = CKIT_WARNING_TITLE,                    .color = CKIT_WARNING_COLOR,    .fd = 2, },
+    [PRINT_ERROR]           = (LogData){.title = CKIT_ERROR_TITLE,                      .color = CKIT_ERROR_COLOR,      .fd = 2, },
+    [PRINT_FATAL]           = (LogData){.title = CKIT_FATAL_TITLE,                      .color = CKIT_FATAL_COLOR,      .fd = 2, },
+    [PRINT_INFO     + 6]    = (LogData){.title = CKIT_WINAPI_TITLE CKIT_INFO_TITLE,     .color = CKIT_INFO_COLOR,       .fd = 1, },
+    [PRINT_DEBUG    + 6]    = (LogData){.title = CKIT_WINAPI_TITLE CKIT_DEBUG_TITLE,    .color = CKIT_DEBUG_COLOR,      .fd = 1, },
+    [PRINT_SUCCESS  + 6]    = (LogData){.title = CKIT_WINAPI_TITLE CKIT_SUCCESS_TITLE,  .color = CKIT_SUCCESS_COLOR,    .fd = 1, },
+    [PRINT_WARNING  + 6]    = (LogData){.title = CKIT_WINAPI_TITLE CKIT_WARNING_TITLE,  .color = CKIT_WARNING_COLOR,    .fd = 2, },
+    [PRINT_ERROR    + 6]    = (LogData){.title = CKIT_WINAPI_TITLE CKIT_ERROR_TITLE,    .color = CKIT_ERROR_COLOR,      .fd = 2, },
+    [PRINT_FATAL    + 6]    = (LogData){.title = CKIT_WINAPI_TITLE CKIT_FATAL_TITLE,    .color = CKIT_FATAL_COLOR,      .fd = 2, },
+    [PRINT_INFO     + 12]   = (LogData){.title = CKIT_POSIX_TITLE CKIT_INFO_TITLE,      .color = CKIT_INFO_COLOR,       .fd = 1, },
+    [PRINT_DEBUG    + 12]   = (LogData){.title = CKIT_POSIX_TITLE CKIT_DEBUG_TITLE,     .color = CKIT_DEBUG_COLOR,      .fd = 1, },
+    [PRINT_SUCCESS  + 12]   = (LogData){.title = CKIT_POSIX_TITLE CKIT_SUCCESS_TITLE,   .color = CKIT_SUCCESS_COLOR,    .fd = 1, },
+    [PRINT_WARNING  + 12]   = (LogData){.title = CKIT_POSIX_TITLE CKIT_WARNING_TITLE,   .color = CKIT_WARNING_COLOR,    .fd = 2, },
+    [PRINT_ERROR    + 12]   = (LogData){.title = CKIT_POSIX_TITLE CKIT_ERROR_TITLE,     .color = CKIT_ERROR_COLOR,      .fd = 2, },
+    [PRINT_FATAL    + 12]   = (LogData){.title = CKIT_POSIX_TITLE CKIT_FATAL_TITLE,     .color = CKIT_FATAL_COLOR,      .fd = 2, },
 };
 
 const char* format(const char* fmt, ...) {
@@ -68,9 +80,11 @@ void print(const char* buf) {
     writefile(1, buf, strlen(buf));
 }
 void printlog(PrintLog level, const char* fmt, ...) {
-    const char* title = LogDatas[level].title;
-    int color = LogDatas[level].color;
     int fd = LogDatas[level].fd;
+    int color = LogDatas[level].color;
+    const char* title = LogDatas[level].title;
+    if (level & PRINT_WINAPI) { title = LogDatas[level + 6].title; }
+    else if (level & PRINT_POSIX) { title = LogDatas[level + 12].title; }
     
     char buf[CKIT_FORMAT_BUFFER_SIZE] = {0};
     va_list args;
@@ -83,9 +97,11 @@ void printlog(PrintLog level, const char* fmt, ...) {
     );
 }
 void printinform(Context context, PrintLog level, const char* fmt, ...) {
-    const char* title = LogDatas[level].title;
-    int color = LogDatas[level].color;
     int fd = LogDatas[level].fd;
+    int color = LogDatas[level].color;
+    const char* title = LogDatas[level].title;
+    if (level & PRINT_WINAPI) { title = LogDatas[level + 6].title; }
+    else if (level & PRINT_POSIX) { title = LogDatas[level + 12].title; }
     
     char buf[CKIT_FORMAT_BUFFER_SIZE] = {0};
     va_list args;
