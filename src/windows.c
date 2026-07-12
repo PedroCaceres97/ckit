@@ -22,12 +22,12 @@
 CKIT_BUFFERS(longpath, wchar_t, CKIT_LONGPATH_BUFFER_COUNT, CKIT_LONGPATH_BUFFER_SIZE)
 CKIT_BUFFERS(lasterror, char, CKIT_LASTERROR_BUFFER_COUNT, CKIT_LASTERROR_BUFFER_SIZE)
 
-#define win_vthrowif(cond, code) vthrowif(cond, ERROR_HARD | ERROR_WINDOWS | ERROR_OS | code, lasterror())
-#define win_zthrowif(cond, code) zthrowif(cond, ERROR_HARD | ERROR_WINDOWS | ERROR_OS | code, lasterror())
-#define win_ithrowif(cond, code) ithrowif(cond, ERROR_HARD | ERROR_WINDOWS | ERROR_OS | code, lasterror())
-#define win_nthrowif(cond, code) nthrowif(cond, ERROR_HARD | ERROR_WINDOWS | ERROR_OS | code, lasterror())
-#define win_gthrowif(gotof, cond, code) gthrowif(gotof, cond, ERROR_HARD | ERROR_WINDOWS | ERROR_OS | code, lasterror())
-#define win_rthrowif(rvalue, cond, code) rthrowif(rvalue, cond, ERROR_HARD | ERROR_WINDOWS | ERROR_OS | code, lasterror())
+#define win_vthrowif(cond) vthrowif(cond, ERROR_HARD_OS | ERROR_WINAPI, lasterror())
+#define win_zthrowif(cond) zthrowif(cond, ERROR_HARD_OS | ERROR_WINAPI, lasterror())
+#define win_ithrowif(cond) ithrowif(cond, ERROR_HARD_OS | ERROR_WINAPI, lasterror())
+#define win_nthrowif(cond) nthrowif(cond, ERROR_HARD_OS | ERROR_WINAPI, lasterror())
+#define win_gthrowif(gotof, cond) gthrowif(gotof, cond, ERROR_HARD_OS | ERROR_WINAPI, lasterror())
+#define win_rthrowif(rvalue, cond) rthrowif(rvalue, cond, ERROR_HARD_OS | ERROR_WINAPI, lasterror())
 
 struct File {
     HANDLE          handle;
@@ -88,24 +88,24 @@ static void winckit_quit() {
     SetConsoleMode(files[1].handle, stdout_mode);
     SetConsoleMode(files[2].handle, stderr_mode);
 #endif
-    throwif(back < FILES_STACK, ERROR_WIN_FILES_UNCLOSED, CKIT_ERROR_FILES_UNCLOSED);
+    throwif(back < FILES_STACK, ERROR_WIN_FILES_UNCLOSED, ERRMSG_FILES_UNCLOSED);
 }
 PREMAIN(winckit_init) {
     atexit(winckit_quit);
     files[0].handle = GetStdHandle(STD_INPUT_HANDLE);
     files[1].handle = GetStdHandle(STD_OUTPUT_HANDLE);
     files[2].handle = GetStdHandle(STD_ERROR_HANDLE);
-    vthrowif(files[0].handle == INVALID_HANDLE_VALUE, ERROR_WIN_STDIN_INVALID, CKIT_ERROR_STDIN_INVALID);
-    vthrowif(files[1].handle == INVALID_HANDLE_VALUE, ERROR_WIN_STDOUT_INVALID, CKIT_ERROR_STDOUT_INVALID);
-    vthrowif(files[2].handle == INVALID_HANDLE_VALUE, ERROR_WIN_STDERR_INVALID, CKIT_ERROR_STDERR_INVALID);
+    vthrowif(files[0].handle == INVALID_HANDLE_VALUE, ERROR_STDIN_INVALID, ERRMSG_STDIN_INVALID);
+    vthrowif(files[1].handle == INVALID_HANDLE_VALUE, ERROR_STDOUT_INVALID, ERRMSG_STDOUT_INVALID);
+    vthrowif(files[2].handle == INVALID_HANDLE_VALUE, ERROR_STDERR_INVALID, ERRMSG_STDERR_INVALID);
     files[0].attributes |= ATTRIBUTE_ISOPEN;
     files[1].attributes |= ATTRIBUTE_ISOPEN;
     files[2].attributes |= ATTRIBUTE_ISOPEN;
 #if !CKIT_DONT_ENABLE_ANSI_FOR_WINDOWS
-    vthrowif(!GetConsoleMode(files[1].handle, &stdout_mode), ERROR_WIN_STDOUT_MODE, CKIT_ERROR_GET_MODE);
-    vthrowif(!GetConsoleMode(files[2].handle, &stderr_mode), ERROR_WIN_STDERR_MODE, CKIT_ERROR_GET_MODE);
-    vthrowif(!SetConsoleMode(files[1].handle, stdout_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT), ERROR_WIN_STDOUT_VT, CKIT_ERROR_ENABLE_VT);
-    vthrowif(!SetConsoleMode(files[2].handle, stderr_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT), ERROR_WIN_STDERR_VT, CKIT_ERROR_ENABLE_VT);
+    vthrowif(!GetConsoleMode(files[1].handle, &stdout_mode), ERROR_STDOUT_MODE, ERRMSG_GET_MODE);
+    vthrowif(!GetConsoleMode(files[2].handle, &stderr_mode), ERROR_STDERR_MODE, ERRMSG_GET_MODE);
+    vthrowif(!SetConsoleMode(files[1].handle, stdout_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT), ERROR_STDOUT_VT, ERRMSG_ENABLE_VT);
+    vthrowif(!SetConsoleMode(files[2].handle, stderr_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT), ERROR_STDERR_VT, ERRMSG_ENABLE_VT);
     files[1].attributes |= ATTRIBUTE_ANSI;
     files[2].attributes |= ATTRIBUTE_ANSI;
 #endif
@@ -120,7 +120,8 @@ static const char* lasterror() {
 }
 static wchar_t* longpath(const char* path) {
     wchar_t utf16[CKIT_LONGPATH_BUFFER_SIZE] = {0};
-    win_nthrowif(!MultiByteToWideChar(CP_UTF8, 0, path, -1, utf16, CKIT_LONGPATH_BUFFER_SIZE), ERROR_INVALID_PATH);
+    int result = MultiByteToWideChar(CP_UTF8, 0, path, -1, utf16, CKIT_LONGPATH_BUFFER_SIZE);
+    nthrowif(!result, ERROR_HARD_OS | ERROR_INVALID_PATH, lasterror());
 
     wchar_t* buffer = ckit_longpath_next();
     wmemset(buffer, 0, CKIT_LONGPATH_BUFFER_SIZE);
@@ -131,7 +132,7 @@ static wchar_t* longpath(const char* path) {
     *cursor++ = L'?';
     *cursor++ = L'\\';
     DWORD len = GetFullPathNameW(utf16, CKIT_LONGPATH_BUFFER_SIZE - 4, cursor, NULL);
-    win_nthrowif(len == 0 || len > CKIT_LONGPATH_BUFFER_SIZE, ERROR_INVALID_PATH);
+    nthrowif(len == 0 || len > CKIT_LONGPATH_BUFFER_SIZE, ERROR_HARD_OS | ERROR_INVALID_PATH, lasterror());
     return buffer;
 }
 
@@ -149,7 +150,7 @@ static bool longcopydir(wchar_t* dirpath, wchar_t* destpath) {
     WIN32_FIND_DATAW data = {0};
     HANDLE first = FindFirstFileW(dirpath, &data);
     if (first == INVALID_HANDLE_VALUE) {
-        win_gthrowif(failure, GetLastError() != ERROR_FILE_NOT_FOUND, ERROR_WINAPI_FILE | ERROR_COPYDIR);
+        win_gthrowif(failure, GetLastError() != ERROR_FILE_NOT_FOUND);
         goto success;
     }
 
@@ -160,7 +161,7 @@ static bool longcopydir(wchar_t* dirpath, wchar_t* destpath) {
     size_t j = 0;
     for (i = 0; dirpath[lendir - i] != L'\\'; i++);
     for (j = 0; i > 0; j++) { destpath[lendest + j] = dirpath[lendir - i--]; }
-    win_gthrowif(failure, !CreateDirectoryW(destpath, NULL), ERROR_WINAPI_FILE | ERROR_COPYDIR);
+    win_gthrowif(failure, !CreateDirectoryW(destpath, NULL));
 
     do { 
         if (isdotfolder(data.cFileName)) { continue; }
@@ -170,27 +171,42 @@ static bool longcopydir(wchar_t* dirpath, wchar_t* destpath) {
         destpath[lendest + j + 1] = 0;
         wcscpy(&dirpath[lendir + 1], data.cFileName);
         wcscpy(&destpath[lendest + j + 1], data.cFileName);
-        if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && !(data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)) { if (!longcopydir(dirpath, destpath)) { goto failure; } }
-        else { win_gthrowif(failure, !CopyFileW(dirpath, destpath, true), ERROR_WINAPI_FILE | ERROR_COPYDIR); }
+        bool isdir = data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && !(data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT);
+        if (isdir) { if (!longcopydir(dirpath, destpath)) { goto failure; } }
+        else { win_gthrowif(failure, !CopyFileW(dirpath, destpath, true)); }
     } while(FindNextFileW(first, &data));
-    win_gthrowif(failure, GetLastError() != ERROR_NO_MORE_FILES, ERROR_WINAPI_FILE | ERROR_REMOVEDIR);
+    win_gthrowif(failure, GetLastError() != ERROR_NO_MORE_FILES);
 
 success:
     dirpath[lendir] = 0;
     destpath[lendest] = 0;
-    if (first != INVALID_HANDLE_VALUE) { win_zthrowif(!FindClose(first), ERROR_WINAPI_FILE | ERROR_COPYDIR); }
+    if (first != INVALID_HANDLE_VALUE) { win_zthrowif(!FindClose(first)); }
     return true;
     
 failure:
     dirpath[lendir] = 0;
     destpath[lendest] = 0;
-    if (first != INVALID_HANDLE_VALUE) { win_zthrowif(!FindClose(first), ERROR_WINAPI_FILE | ERROR_COPYDIR); }
+    if (first != INVALID_HANDLE_VALUE) { win_zthrowif(!FindClose(first)); }
     return false;
 }
 static bool longcheckdir(wchar_t* dirpath) {
     DWORD attributes = GetFileAttributesW(dirpath);
     if (attributes == INVALID_FILE_ATTRIBUTES) { return false; }
     return attributes & FILE_ATTRIBUTE_DIRECTORY;
+}
+static bool longcreatedir(wchar_t* dirpath) {
+    // Skip "\\\\?\\C:\\"
+    WCHAR* next = &dirpath[7];
+    while (*next) {
+        if (*next != L'\\' && *next != L'/') { next++; continue; }
+        *next = L'\0';
+        BOOL result = CreateDirectoryW(dirpath, NULL);
+        win_zthrowif(!result && GetLastError() != ERROR_ALREADY_EXISTS);
+        *next++ = L'\\';
+    }
+    BOOL result = CreateDirectoryW(dirpath, NULL);
+    win_zthrowif(!result && GetLastError() != ERROR_ALREADY_EXISTS);
+    return true;
 }
 static bool longremovedir(wchar_t* dirpath, bool force) {
     if (!longcheckdir(dirpath)) { return true; }
@@ -203,7 +219,7 @@ static bool longremovedir(wchar_t* dirpath, bool force) {
     WIN32_FIND_DATAW data = {0};
     HANDLE first = FindFirstFileW(dirpath, &data);
     if (first == INVALID_HANDLE_VALUE) {
-        win_zthrowif(GetLastError() != ERROR_FILE_NOT_FOUND, ERROR_WINAPI_FILE | ERROR_REMOVEDIR);
+        win_zthrowif(GetLastError() != ERROR_FILE_NOT_FOUND);
         goto success;
     } else if (!force) { 
         goto failure;
@@ -214,19 +230,20 @@ static bool longremovedir(wchar_t* dirpath, bool force) {
         dirpath[len] = '\\';
         dirpath[len + 1] = 0;
         wcscpy(&dirpath[len + 1], data.cFileName);
-        if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) { if (!longremovedir(dirpath, true)) { goto failure; } }
-        else { win_gthrowif(failure, !DeleteFileW(dirpath), ERROR_WINAPI_FILE | ERROR_REMOVEDIR); }
+        bool isdir = data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
+        if (isdir) { if (!longremovedir(dirpath, true)) { goto failure; } }
+        else { win_gthrowif(failure, !DeleteFileW(dirpath)); }
     } while(FindNextFileW(first, &data));
-    win_gthrowif(failure, GetLastError() != ERROR_NO_MORE_FILES, ERROR_WINAPI_FILE | ERROR_REMOVEDIR);
+    win_gthrowif(failure, GetLastError() != ERROR_NO_MORE_FILES);
     
 success:
     dirpath[len] = 0;
-    win_zthrowif(!FindClose(first), ERROR_WINAPI_FILE | ERROR_REMOVEDIR);
-    win_zthrowif(!RemoveDirectoryW(dirpath), ERROR_WINAPI_FILE | ERROR_REMOVEDIR);
+    win_zthrowif(!FindClose(first));
+    win_zthrowif(!RemoveDirectoryW(dirpath));
     return true;
 
 failure:
-    win_zthrowif(!FindClose(first), ERROR_WINAPI_FILE | ERROR_REMOVEDIR);
+    win_zthrowif(!FindClose(first));
     return false;
 }
 
@@ -237,110 +254,99 @@ static bool longcheckfile(wchar_t* filepath) {
 }
 
 FileAttributes attributes(int fd) {
-    zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD, CKIT_ERROR_INVALID_FD);
-    zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED, CKIT_ERROR_FILE_UNOPENED);
+    zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD, ERRMSG_INVALID_FD);
+    zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED, ERRMSG_FILE_UNOPENED);
     return files[fd].attributes;
 }
 
 bool copydir(const char* dirpath, const char* destpath) {
-    zthrowif(!dirpath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_COPYDIR, CKIT_ERROR_NULLPTR LITERAL(filepath));
-    zthrowif(!destpath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_COPYDIR, CKIT_ERROR_NULLPTR LITERAL(destpath));
+    zthrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
+    zthrowif(!destpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(destpath));
     
     wchar_t* longdir = longpath(dirpath);
     wchar_t* longdest = longpath(destpath);
-    zthrowif(longcheckdir(longdest), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_COPYDIR, CKIT_ERROR_COPYDIR_REPLACE);
-    zthrowif(!longcheckdir(longdir), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_COPYDIR, CKIT_ERROR_FILE_DOESNT_EXIST);
+    zthrowif(longcheckdir(longdest), ERROR_USER_EXISTING, ERRMSG_COPYDIR_REPLACE);
+    zthrowif(!longcheckdir(longdir), ERROR_USER_UNEXISTING, ERRMSG_FILE_DOESNT_EXIST);
     return longcopydir(longdir, longdest);
 }
 bool checkdir(const char* dirpath) {
-    zthrowif(!dirpath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_CHECKDIR, CKIT_ERROR_NULLPTR LITERAL(dirpath));
-    return longcheckdir(longpath(dirpath));
+    zthrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(dirpath));
+    wchar_t* path = longpath(dirpath);
+    return longcheckdir(path);
 }
 bool createdir(const char* dirpath) {
-    zthrowif(!dirpath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_CREATEDIR, CKIT_ERROR_NULLPTR LITERAL(dirpath));
-
+    zthrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(dirpath));
     wchar_t* path = longpath(dirpath);
-    if (longcheckdir(path)) { return true; }
-
-    // Skip "\\\\?\\C:\\"
-    WCHAR* next = &path[7];
-    while (*next) {
-        if (*next != L'\\' && *next != L'/') { next++; continue; }
-        *next = L'\0';
-        if (!longcheckdir(path)) {
-            win_zthrowif(!CreateDirectoryW(path, NULL) && GetLastError() != ERROR_ALREADY_EXISTS, ERROR_WINAPI_FILE | ERROR_CREATEDIR);
-        }
-        *next++ = L'\\';
-    }
-    win_zthrowif(!CreateDirectoryW(path, NULL) && GetLastError() != ERROR_ALREADY_EXISTS, ERROR_WINAPI_FILE | ERROR_CREATEDIR);
-    return true;
+    return longcreatedir(path);
 }
 bool removedir(const char* dirpath, bool force) {
-    zthrowif(!dirpath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_REMOVEDIR, CKIT_ERROR_NULLPTR LITERAL(dirpath));
-    return longremovedir(longpath(dirpath), force);
+    zthrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(dirpath));
+    wchar_t* path = longpath(dirpath);
+    return longremovedir(path, force);
 }
 bool renamedir(const char* dirpath, const char* destpath) {
-    zthrowif(!dirpath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_RENAMEDIR, CKIT_ERROR_NULLPTR LITERAL(filepath));
-    zthrowif(!destpath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_RENAMEDIR, CKIT_ERROR_NULLPTR LITERAL(destpath));
+    zthrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
+    zthrowif(!destpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(destpath));
     
     wchar_t* longdir = longpath(dirpath);
     wchar_t* longdest = longpath(destpath);
-    zthrowif(longcheckfile(longdest), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_RENAMEDIR, CKIT_ERROR_RENAMEDIR_REPLACE);
-    zthrowif(!longcheckfile(longdir), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_RENAMEDIR, CKIT_ERROR_FILE_DOESNT_EXIST);
-    win_zthrowif(!MoveFileW(longdir, longdest), ERROR_WINAPI_FILE | ERROR_RENAMEDIR);
+    zthrowif(longcheckfile(longdest), ERROR_USER_EXISTING, ERRMSG_RENAMEDIR_REPLACE);
+    zthrowif(!longcheckfile(longdir), ERROR_USER_UNEXISTING, ERRMSG_FILE_DOESNT_EXIST);
+    win_zthrowif(!MoveFileW(longdir, longdest));
     return true;
 }
 
 bool copyfile(const char* filepath, const char* destpath) {
-    zthrowif(!filepath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_COPYFILE, CKIT_ERROR_NULLPTR LITERAL(filepath));
-    zthrowif(!destpath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_COPYFILE, CKIT_ERROR_NULLPTR LITERAL(destpath));
+    zthrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
+    zthrowif(!destpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(destpath));
     
     wchar_t* longfile = longpath(filepath);
     wchar_t* longdest = longpath(destpath);
-    zthrowif(longcheckfile(longdest), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_COPYFILE, CKIT_ERROR_COPYFILE_REPLACE);
-    zthrowif(!longcheckfile(longfile), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_COPYFILE, CKIT_ERROR_FILE_DOESNT_EXIST);
-    win_zthrowif(!CopyFileW(longfile, longdest, true), ERROR_WINAPI_FILE | ERROR_COPYFILE);
+    zthrowif(longcheckfile(longdest), ERROR_USER_EXISTING, ERRMSG_COPYFILE_REPLACE);
+    zthrowif(!longcheckfile(longfile), ERROR_USER_UNEXISTING, ERRMSG_FILE_DOESNT_EXIST);
+    win_zthrowif(!CopyFileW(longfile, longdest, true));
     return true;
 }
 bool checkfile(const char* filepath) {
-    zthrowif(!filepath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_CHECKFILE, CKIT_ERROR_NULLPTR LITERAL(filepath));
-    return longcheckfile(longpath(filepath));
+    zthrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
+
+    wchar_t* path = longpath(filepath);
+    return longcheckfile(path);
 }
 bool createfile(const char* filepath) {
-    zthrowif(!filepath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_CREATEFILE, CKIT_ERROR_NULLPTR LITERAL(filepath));
+    zthrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
 
     DWORD access = GENERIC_READ;
     DWORD creation = CREATE_ALWAYS;
     wchar_t* path = longpath(filepath);
     HANDLE file = CreateFileW(path, access, 0, NULL, creation, FILE_ATTRIBUTE_NORMAL, NULL);
-    win_zthrowif(file == INVALID_HANDLE_VALUE, ERROR_WINAPI_FILE | ERROR_CREATEFILE);
-    win_zthrowif(!CloseHandle(file), ERROR_WINAPI_FILE | ERROR_CREATEFILE);
+    win_zthrowif(file == INVALID_HANDLE_VALUE || !CloseHandle(file));
     return true;
 }
 bool removefile(const char* filepath) {
-    zthrowif(!filepath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_REMOVEFILE, CKIT_ERROR_NULLPTR LITERAL(filepath));
+    zthrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
     
     wchar_t* path = longpath(filepath);
-    if (!longcheckfile(path)) { return true; }
-    win_zthrowif(!DeleteFileW(path), ERROR_WINAPI_FILE | ERROR_REMOVEFILE);
+    BOOL result = DeleteFileW(path);
+    win_zthrowif(!result && GetLastError() != ERROR_FILE_NOT_FOUND);
     return true;
 }
 bool renamefile(const char* filepath, const char* destpath) {
-    zthrowif(!filepath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_RENAMEFILE, CKIT_ERROR_NULLPTR LITERAL(filepath));
-    zthrowif(!destpath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_RENAMEFILE, CKIT_ERROR_NULLPTR LITERAL(destpath));
+    zthrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
+    zthrowif(!destpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(destpath));
     
     wchar_t* longfile = longpath(filepath);
     wchar_t* longdest = longpath(destpath);
-    zthrowif(longcheckfile(longdest), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_RENAMEFILE, CKIT_ERROR_RENAMEFILE_REPLACE);
-    zthrowif(!longcheckfile(longfile), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_RENAMEFILE, CKIT_ERROR_FILE_DOESNT_EXIST);
-    win_zthrowif(!MoveFileW(longfile, longdest), ERROR_WINAPI_FILE | ERROR_RENAMEFILE);
+    zthrowif(longcheckfile(longdest), ERROR_USER_EXISTING, ERRMSG_RENAMEFILE_REPLACE);
+    zthrowif(!longcheckfile(longfile), ERROR_USER_UNEXISTING, ERRMSG_FILE_DOESNT_EXIST);
+    win_zthrowif(!MoveFileW(longfile, longdest));
     return true;
 }
 
 int openfile(const char* filepath, FileAttributes attributes) {
-    ithrowif(!filepath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_OPENFILE, CKIT_ERROR_NULLPTR LITERAL(filepath));
+    ithrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
     
-    ithrowif(back == 0, ERROR_HARD | ERROR_WINDOWS | ERROR_USER | ERROR_MAX_REACHED | ERROR_OPENFILE, CKIT_ERROR_FILES_MAX_REACHED);
+    ithrowif(back == 0, ERROR_HARD_USER | ERROR_MAX_REACHED, ERRMSG_FILES_MAX_REACHED);
     int fd = stack[--back];
     stack[back] = 0;
     files[fd].attributes = attributes & ~ATTRIBUTE_ISOPEN;
@@ -355,42 +361,41 @@ int openfile(const char* filepath, FileAttributes attributes) {
     wchar_t* path = longpath(filepath);
     files[fd].handle = CreateFileW(path, access, 0, NULL, creation, FILE_ATTRIBUTE_NORMAL, NULL);
     if (GetLastError() == ERROR_ALREADY_EXISTS && attributes & ATTRIBUTE_IFNEW) { return fd; }
-    win_ithrowif(files[fd].handle == INVALID_HANDLE_VALUE, ERROR_HARD | ERROR_WINDOWS | ERROR_OS | ERROR_WINAPI_FILE | ERROR_OPENFILE);
+    win_ithrowif(files[fd].handle == INVALID_HANDLE_VALUE);
     files[fd].attributes |= ATTRIBUTE_ISOPEN;
     return fd;
 }
 void closefile(int fd) {
-    vthrowif(fd == 0 || fd == 1 || fd == 2, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_STDCLOSE | ERROR_CLOSEFILE, CKIT_ERROR_CLOSE_STD);
-    vthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD | ERROR_CLOSEFILE, CKIT_ERROR_INVALID_FD);
-    vthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED | ERROR_CLOSEFILE, CKIT_ERROR_FILE_UNOPENED);
-    if (files[fd].attributes & ATTRIBUTE_ISOPEN) { 
-        win_vthrowif(!CloseHandle, ERROR_HARD | ERROR_WINDOWS | ERROR_OS | ERROR_WINAPI_FILE | ERROR_CLOSEFILE);
-    }
+    vthrowif(fd == 0 || fd == 1 || fd == 2, ERROR_USER_STDCLOSE, ERRMSG_STDCLOSE);
+    vthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_USER_INVALID_FD, ERRMSG_INVALID_FD);
+    vthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_USER_UNOPENED, ERRMSG_UNOPENED);
+    
+    if (files[fd].attributes & ATTRIBUTE_ISOPEN) { win_vthrowif(!CloseHandle); }
     files[fd].attributes = 0;
     stack[back++] = fd;
 }
 size_t dumpfile(const char* filepath, char* buf, size_t max) {
-    ithrowif(!filepath, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_DUMPFILE, CKIT_ERROR_NULLPTR LITERAL(filepath));
-    ithrowif(!buf, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_DUMPFILE, CKIT_ERROR_NULLPTR LITERAL(buf));
+    ithrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
+    ithrowif(!buf, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(buf));
     if (max == 0) { return 0; }
 
     DWORD access = GENERIC_READ;
     DWORD creation = CREATE_ALWAYS;
     wchar_t* path = longpath(filepath);
     HANDLE file = CreateFileW(path, access, 0, NULL, creation, FILE_ATTRIBUTE_NORMAL, NULL);
-    win_zthrowif(file == INVALID_HANDLE_VALUE, ERROR_WINAPI_FILE | ERROR_DUMPFILE);
+    win_zthrowif(file == INVALID_HANDLE_VALUE);
     
     DWORD readed = 0;
-    win_zthrowif(!ReadFile(file, buf, max - 1, &readed, NULL), ERROR_WINAPI_FILE | ERROR_DUMPFILE);
-    win_zthrowif(!CloseHandle(file), ERROR_WINAPI_FILE | ERROR_DUMPFILE);
+    win_zthrowif(!ReadFile(file, buf, max - 1, &readed, NULL));
+    win_zthrowif(!CloseHandle(file));
     buf[readed] = '\0';
     return (size_t)readed;
 }
 size_t readfile(int fd, char* buf, size_t max) {
-    zthrowif(!buf, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_READFILE, CKIT_ERROR_NULLPTR LITERAL(buf));
-    zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD | ERROR_READFILE, CKIT_ERROR_INVALID_FD);
-    zthrowif(!(files[fd].attributes & ATTRIBUTE_READ), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNREADABLE | ERROR_READFILE, CKIT_ERROR_FILE_UNREADABLE);
-    zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED | ERROR_READFILE, CKIT_ERROR_FILE_UNOPENED);
+    zthrowif(!buf, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_READFILE, ERRMSG_NULLPTR LITERAL(buf));
+    zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD | ERROR_READFILE, ERRMSG_INVALID_FD);
+    zthrowif(!(files[fd].attributes & ATTRIBUTE_READ), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNREADABLE | ERROR_READFILE, ERRMSG_FILE_UNREADABLE);
+    zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED | ERROR_READFILE, ERRMSG_FILE_UNOPENED);
     if (!(files[fd].attributes & ATTRIBUTE_ISOPEN) || !max) { return 0; }
 
     DWORD readed = 0;
@@ -399,10 +404,10 @@ size_t readfile(int fd, char* buf, size_t max) {
     return (size_t)readed;
 }
 size_t writefile(int fd, const char* buf, size_t max) {
-    zthrowif(!buf, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_WRITEFILE, CKIT_ERROR_NULLPTR LITERAL(buf));
-    zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD | ERROR_WRITEFILE, CKIT_ERROR_INVALID_FD);
-    zthrowif(!(files[fd].attributes & ATTRIBUTE_WRITE), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNWRITEABLE | ERROR_WRITEFILE, CKIT_ERROR_FILE_UNWRITEABLE);
-    zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED | ERROR_WRITEFILE, CKIT_ERROR_FILE_UNOPENED);
+    zthrowif(!buf, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_WRITEFILE, ERRMSG_NULLPTR LITERAL(buf));
+    zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD | ERROR_WRITEFILE, ERRMSG_INVALID_FD);
+    zthrowif(!(files[fd].attributes & ATTRIBUTE_WRITE), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNWRITEABLE | ERROR_WRITEFILE, ERRMSG_FILE_UNWRITEABLE);
+    zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED | ERROR_WRITEFILE, ERRMSG_FILE_UNOPENED);
     if (!(files[fd].attributes & ATTRIBUTE_ISOPEN) || !max) { return 0; }
 
     DWORD written = 0;
@@ -410,12 +415,12 @@ size_t writefile(int fd, const char* buf, size_t max) {
     return (size_t)written;
 }
 size_t printfile(int fd, const char* buf) {
-    zthrowif(!buf, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_WRITEFILE, CKIT_ERROR_NULLPTR LITERAL(buf));
+    zthrowif(!buf, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_NULLPTR | ERROR_WRITEFILE, ERRMSG_NULLPTR LITERAL(buf));
     return writefile(fd, buf, strlen(buf));
 }
 size_t sizefile(int fd) {
-    zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD | ERROR_SIZEFILE, CKIT_ERROR_INVALID_FD);
-    zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED | ERROR_SIZEFILE, CKIT_ERROR_FILE_UNOPENED);
+    zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD | ERROR_SIZEFILE, ERRMSG_INVALID_FD);
+    zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED | ERROR_SIZEFILE, ERRMSG_FILE_UNOPENED);
     if (!(files[fd].attributes & ATTRIBUTE_ISOPEN)) { return 0; }
 
     LARGE_INTEGER LISize = {0};
@@ -423,8 +428,8 @@ size_t sizefile(int fd) {
     return (size_t)LISize.QuadPart;
 }
 size_t tellfile(int fd) {
-    zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD | ERROR_TELLFILE, CKIT_ERROR_INVALID_FD);
-    zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED | ERROR_TELLFILE, CKIT_ERROR_FILE_UNOPENED);
+    zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD | ERROR_TELLFILE, ERRMSG_INVALID_FD);
+    zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED | ERROR_TELLFILE, ERRMSG_FILE_UNOPENED);
     if (!(files[fd].attributes & ATTRIBUTE_ISOPEN)) { return 0; }
 
     LARGE_INTEGER LINew = {0};
@@ -433,8 +438,8 @@ size_t tellfile(int fd) {
     return (size_t)LINew.QuadPart;
 }
 size_t seekfile(int fd, ptrdiff_t offset, FileSeek origin) {
-    zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD | ERROR_SEEKFILE, CKIT_ERROR_INVALID_FD);
-    zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED | ERROR_SEEKFILE, CKIT_ERROR_FILE_UNOPENED);
+    zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_INVALID_FD | ERROR_SEEKFILE, ERRMSG_INVALID_FD);
+    zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNOPENED | ERROR_SEEKFILE, ERRMSG_FILE_UNOPENED);
     if (!(files[fd].attributes & ATTRIBUTE_ISOPEN)) { return 0; }
 
     DWORD method = origin;

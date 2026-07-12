@@ -3,46 +3,46 @@
 
 #include <ckit/info.h>
 
-#define CKIT_ERROR_UNKOWN_OS            "Unable to fetch OS info"
-#define CKIT_ERROR_UNSUPPORTED_PTR      "Unsupported pointer size"
-#define CKIT_ERROR_UNSUPPORTED_SIZE     "Unsupported size_t size"
-#define CKIT_ERROR_UNSUPPORTED_DIFF     "Unsupported ptrdiff_t size"
+#define ERRMSG_UNKOWN_OS            "Unable to fetch OS info"
+#define ERRMSG_UNSUPPORTED_PTR      "Unsupported pointer size"
+#define ERRMSG_UNSUPPORTED_SIZE     "Unsupported size_t size"
+#define ERRMSG_UNSUPPORTED_DIFF     "Unsupported ptrdiff_t size"
 
-#define CKIT_ERROR_STDIN_INVALID        "GetStdHandle(STD_INPUT_HANDLE) returned INVALID_HANDLE_VALUE"
-#define CKIT_ERROR_STDOUT_INVALID       "GetStdHandle(STD_OUTPUT_HANDLE) returned INVALID_HANDLE_VALUE"
-#define CKIT_ERROR_STDERR_INVALID       "GetStdHandle(STD_ERROR_HANDLE) returned INVALID_HANDLE_VALUE"
+#define ERRMSG_STDIN_INVALID        "GetStdHandle(STD_INPUT_HANDLE) returned INVALID_HANDLE_VALUE"
+#define ERRMSG_STDOUT_INVALID       "GetStdHandle(STD_OUTPUT_HANDLE) returned INVALID_HANDLE_VALUE"
+#define ERRMSG_STDERR_INVALID       "GetStdHandle(STD_ERROR_HANDLE) returned INVALID_HANDLE_VALUE"
 
-#define CKIT_ERROR_GET_MODE             "Failed to retrieve console mode through GetConsoleMode(HANDLE, &mode)"
-#define CKIT_ERROR_ENABLE_VT            "Failed to enable VIRTUAL_TERMINAL_PROCESSING through SetConsoleMode(HANDLE, mode)"
+#define ERRMSG_GET_MODE             "Failed to retrieve console mode through GetConsoleMode(HANDLE, &mode)"
+#define ERRMSG_ENABLE_VT            "Failed to enable VIRTUAL_TERMINAL_PROCESSING through SetConsoleMode(HANDLE, mode)"
 
-#define CKIT_ERROR_CLOSE_STD            "Standard file is not closeable"
-#define CKIT_ERROR_INVALID_FD           "Invalid file descriptor (negative or bigger than 255)"
-#define CKIT_ERROR_FILE_UNOPENED        "Trying to operate over an unopened file"
-#define CKIT_ERROR_FILE_UNREADABLE      "File missing ATTRIBUTE_READ"
-#define CKIT_ERROR_FILE_UNWRITEABLE     "File missing ATTRIBUTE_WRITE"
-#define CKIT_ERROR_FILE_DOESNT_EXIST    "File does not exist"
-#define CKIT_ERROR_FILES_MAX_REACHED    "Unable to open more files than 256 (std included)"
-#define CKIT_ERROR_FILES_UNCLOSED       "Detected unclosed files at terminate"
+#define ERRMSG_UNOPENED             "Trying to operate over an unopened file"
+#define ERRMSG_UNREADABLE           "File missing ATTRIBUTE_READ"
+#define ERRMSG_UNWRITEABLE          "File missing ATTRIBUTE_WRITE"
+#define ERRMSG_STDCLOSE             "Standard file is not closeable"
+#define ERRMSG_INVALID_FD           "Invalid file descriptor (negative or bigger than 255)"
+#define ERRMSG_FILE_DOESNT_EXIST    "File does not exist"
+#define ERRMSG_FILES_MAX_REACHED    "Unable to open more files than 256 (std included)"
+#define ERRMSG_FILES_UNCLOSED       "Detected unclosed files at terminate"
 
-#define CKIT_ERROR_COPYFILE_REPLACE     "Cant copy a file into an already existent file"
-#define CKIT_ERROR_RENAMEFILE_REPLACE   "Cant rename a file into an already existent file"
+#define ERRMSG_COPYFILE_REPLACE     "Cant copy a file into an already existent file"
+#define ERRMSG_RENAMEFILE_REPLACE   "Cant rename a file into an already existent file"
 
-#define CKIT_ERROR_COPYDIR_REPLACE      "Cant copy a directory into an already existent directory"
-#define CKIT_ERROR_RENAMEDIR_REPLACE    "Cant rename a directory into an already existent directory"
+#define ERRMSG_COPYDIR_REPLACE      "Cant copy a directory into an already existent directory"
+#define ERRMSG_RENAMEDIR_REPLACE    "Cant rename a directory into an already existent directory"
 
-#define CKIT_ERROR_NULLPTR              "Memory address is a nullptr -> "
-#define CKIT_ERROR_FOREIGN_PTR          "Memory address does not belong to struct"
-#define CKIT_ERROR_ALREADY_FREE         "Memory address is already free"
-#define CKIT_ERROR_NOT_ALLOCATED        "Memory address was not allocated"
-#define CKIT_ERROR_ZERO_SIZE_ALLOCATION "Requested allocation size is 0"
+#define ERRMSG_NULLPTR(ptr)         "Memory address is a nullptr -> " LITERAL(ptr)
+#define ERRMSG_FOREIGN_PTR          "Memory address does not belong to struct"
+#define ERRMSG_ALREADY_FREE         "Memory address is already free"
+#define ERRMSG_NOT_ALLOCATED        "Memory address was not allocated"
+#define ERRMSG_ZERO_SIZE_ALLOCATION "Requested allocation size is 0"
 
-#define CKIT_ERROR_GETINPUT_OVERFLOW    "Input overflowed"
+#define ERRMSG_GETINPUT_OVERFLOW    "Input overflowed"
 
-#define CKIT_ERROR_NON_EMPTY_SLAB       "Destroying non empty slab"
-#define CKIT_ERROR_NON_EMPTY_TRACKER    "Destroying non empty tracker"
-#define CKIT_ERROR_NON_EMPTY_VECTOR     "Destroying non empty vector"
+// #define CKIT_ERROR_NON_EMPTY_SLAB       "Destroying non empty slab"
+// #define CKIT_ERROR_NON_EMPTY_TRACKER    "Destroying non empty tracker"
+// #define CKIT_ERROR_NON_EMPTY_VECTOR     "Destroying non empty vector"
 
-#define CKIT_ERROR_MEMORY_COPY_ZERO     "Called a memory copying operation with zero size or count"
+#define ERRMSG_MEMORY_COPY_ZERO     "Called a memory copying operation with zero size or count"
 
 /*
     32bits
@@ -60,12 +60,10 @@
 
 typedef enum {
     BIT_ERROR_TYPE      = 0,
-    BIT_ERROR_PLATFORM  = 2,
-    BIT_ERROR_FAULT     = 4,
-    BIT_ERROR_FILE      = 8,
-    BIT_ERROR_MEMORY    = 12,
-    BIT_ERROR_STRUCT    = 16,
-    BIT_ERROR_OPERATION = 20,
+    BIT_ERROR_ORIGIN    = 2,
+    BIT_ERROR_FILE      = 6,
+    BIT_ERROR_MEMORY    = 10,
+    BIT_ERROR_STRUCT    = 14,
 } ErrorCodeBit;
 
 typedef enum {
@@ -74,30 +72,29 @@ typedef enum {
 // ERROR_TYPE       2bit field
     ERROR_SOFT          = 1 << BIT_ERROR_TYPE,
     ERROR_HARD          = 2 << BIT_ERROR_TYPE,
-
-// ERROR_PLATFORM   2bit field
-    ERROR_WINDOWS       = 1 << BIT_ERROR_PLATFORM,
-    ERROR_POSIX         = 2 << BIT_ERROR_PLATFORM,
-
-// ERROR_FAULT      4bit field
-    ERROR_OS            = 1 << BIT_ERROR_FAULT,
-    ERROR_CKIT          = 2 << BIT_ERROR_FAULT,
-    ERROR_USER          = 3 << BIT_ERROR_FAULT,
-    ERROR_FUNCTION      = 4 << BIT_ERROR_FAULT,
-    ERROR_STDIN         = 5 << BIT_ERROR_FAULT,
-    ERROR_STDOUT        = 6 << BIT_ERROR_FAULT,
-    ERROR_STDERR        = 7 << BIT_ERROR_FAULT,
+    
+// ERROR_ORIGIN     4bit field
+    ERROR_WINDOWS       = 1 << BIT_ERROR_ORIGIN,
+    ERROR_POSIX         = 2 << BIT_ERROR_ORIGIN,
+    ERROR_CKIT          = 3 << BIT_ERROR_ORIGIN,
+    ERROR_USER          = 4 << BIT_ERROR_ORIGIN,
+    ERROR_FUNCTION      = 5 << BIT_ERROR_ORIGIN,
+    ERROR_STDIN         = 6 << BIT_ERROR_ORIGIN,
+    ERROR_STDOUT        = 7 << BIT_ERROR_ORIGIN,
+    ERROR_STDERR        = 8 << BIT_ERROR_ORIGIN,
 
 // ERROR_FILE       4bit field
-    ERROR_UNOPENED      = 1 << BIT_ERROR_FILE,
-    ERROR_UNREADABLE    = 2 << BIT_ERROR_FILE,
-    ERROR_UNWRITEABLE   = 3 << BIT_ERROR_FILE,
-    ERROR_UNCLOSED      = 4 << BIT_ERROR_FILE,
-    ERROR_STDCLOSE      = 5 << BIT_ERROR_FILE,
-    ERROR_INVALID_FD    = 6 << BIT_ERROR_FILE,
-    ERROR_INVALID_PATH  = 7 << BIT_ERROR_FILE,
-    ERROR_MAX_REACHED   = 8 << BIT_ERROR_FILE,
-    ERROR_WINAPI_FILE   = 9 << BIT_ERROR_FILE,
+    ERROR_WINAPI        = 1 << BIT_ERROR_FILE,
+    ERROR_UNOPENED      = 2 << BIT_ERROR_FILE,
+    ERROR_UNREADABLE    = 3 << BIT_ERROR_FILE,
+    ERROR_UNWRITEABLE   = 4 << BIT_ERROR_FILE,
+    ERROR_UNCLOSED      = 5 << BIT_ERROR_FILE,
+    ERROR_STDCLOSE      = 6 << BIT_ERROR_FILE,
+    ERROR_EXISTING      = 7 << BIT_ERROR_FILE,
+    ERROR_UNEXISTING    = 8 << BIT_ERROR_FILE,
+    ERROR_INVALID_FD    = 9 << BIT_ERROR_FILE,
+    ERROR_INVALID_PATH = 10 << BIT_ERROR_FILE,
+    ERROR_MAX_REACHED  = 11 << BIT_ERROR_FILE,
 
 // ERROR_MEMORY     4bit field
     ERROR_NULLPTR       = 1 << BIT_ERROR_MEMORY,
@@ -113,67 +110,45 @@ typedef enum {
     ERROR_ARRAY         = 2 << BIT_ERROR_STRUCT,
     ERROR_LIST          = 3 << BIT_ERROR_STRUCT,
     ERROR_SLAB          = 4 << BIT_ERROR_STRUCT,
-
-// ERROR_OPERATION  6bit field
-    ERROR_COPYDIR       = 1 << BIT_ERROR_OPERATION,
-    ERROR_CHECKDIR      = 2 << BIT_ERROR_OPERATION,
-    ERROR_CREATEDIR     = 3 << BIT_ERROR_OPERATION,
-    ERROR_REMOVEDIR     = 4 << BIT_ERROR_OPERATION,
-    ERROR_RENAMEDIR     = 5 << BIT_ERROR_OPERATION,
-
-    ERROR_COPYFILE      = 6 << BIT_ERROR_OPERATION,
-    ERROR_CHECKFILE     = 7 << BIT_ERROR_OPERATION,
-    ERROR_CREATEFILE    = 8 << BIT_ERROR_OPERATION,
-    ERROR_REMOVEFILE    = 9 << BIT_ERROR_OPERATION,
-    ERROR_RENAMEFILE   = 10 << BIT_ERROR_OPERATION,
-
-    ERROR_OPENFILE     = 11 << BIT_ERROR_OPERATION,
-    ERROR_CLOSEFILE    = 12 << BIT_ERROR_OPERATION,
-    ERROR_DUMPFILE     = 13 << BIT_ERROR_OPERATION,
-    ERROR_READFILE     = 14 << BIT_ERROR_OPERATION,
-    ERROR_WRITEFILE    = 15 << BIT_ERROR_OPERATION,
-    ERROR_SIZEFILE     = 16 << BIT_ERROR_OPERATION,
-    ERROR_TELLFILE     = 17 << BIT_ERROR_OPERATION,
-    ERROR_SEEKFILE     = 18 << BIT_ERROR_OPERATION,
-
-    ERROR_CREATE       = 19 << BIT_ERROR_OPERATION,
-    ERROR_DESTROY      = 20 << BIT_ERROR_OPERATION,
-    ERROR_FREE         = 21 << BIT_ERROR_OPERATION,
-    ERROR_ALLOC        = 22 << BIT_ERROR_OPERATION,
-    ERROR_REALLOC      = 23 << BIT_ERROR_OPERATION,
-    ERROR_DUPLICATE    = 24 << BIT_ERROR_OPERATION,
-    ERROR_AT           = 25 << BIT_ERROR_OPERATION,
-    ERROR_SET          = 26 << BIT_ERROR_OPERATION,
-    ERROR_GET          = 27 << BIT_ERROR_OPERATION,
-    ERROR_CLEAR        = 28 << BIT_ERROR_OPERATION,
-    ERROR_ERASE        = 29 << BIT_ERROR_OPERATION,
-    ERROR_POPBACK      = 30 << BIT_ERROR_OPERATION,
-    ERROR_POPFRONT     = 31 << BIT_ERROR_OPERATION,
-    ERROR_INSERT       = 32 << BIT_ERROR_OPERATION,
-    ERROR_PUSHBACK     = 33 << BIT_ERROR_OPERATION,
-    ERROR_PUSHFRONT    = 34 << BIT_ERROR_OPERATION,
-    ERROR_MEMCPY       = 35 << BIT_ERROR_OPERATION,
-    ERROR_MEMSET       = 36 << BIT_ERROR_OPERATION,
-    ERROR_APPEND       = 37 << BIT_ERROR_OPERATION,
-    ERROR_REPEAT       = 38 << BIT_ERROR_OPERATION,
 } ErrorCode;
 
-#define ERROR_WIN_STDIN_INVALID     (ERROR_HARD | ERROR_WINDOWS | ERROR_OS | ERROR_STDIN | ERROR_WINAPI_FILE)
-#define ERROR_WIN_STDOUT_INVALID    (ERROR_SOFT | ERROR_WINDOWS | ERROR_OS | ERROR_STDOUT | ERROR_WINAPI_FILE)
-#define ERROR_WIN_STDERR_INVALID    (ERROR_SOFT | ERROR_WINDOWS | ERROR_OS | ERROR_STDERR | ERROR_WINAPI_FILE)
-#define ERROR_WIN_STDOUT_MODE       (ERROR_SOFT | ERROR_WINDOWS | ERROR_OS | ERROR_STDOUT | ERROR_WINAPI_FILE)
-#define ERROR_WIN_STDERR_MODE       (ERROR_SOFT | ERROR_WINDOWS | ERROR_OS | ERROR_STDOUT | ERROR_WINAPI_FILE)
-#define ERROR_WIN_STDOUT_VT         (ERROR_SOFT | ERROR_WINDOWS | ERROR_OS | ERROR_STDOUT | ERROR_WINAPI_FILE)
-#define ERROR_WIN_STDERR_VT         (ERROR_SOFT | ERROR_WINDOWS | ERROR_OS | ERROR_STDERR | ERROR_WINAPI_FILE)
+#ifdef INFO_OS_WINDOWS
+    #define ERROR_OS                ERROR_WINDOWS
+#else
+    #define ERROR_OS                ERROR_POSIX
+#endif
 
-#define ERROR_WIN_FILES_UNCLOSED (ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNCLOSED | ERROR_LEAK)
+#define ERROR_SOFT_OS           (ERROR_SOFT | ERROR_OS)
+#define ERROR_HARD_OS           (ERROR_HARD | ERROR_OS)
+
+#define ERROR_SOFT_USER         (ERROR_SOFT | ERROR_USER)
+#define ERROR_HARD_USER         (ERROR_HARD | ERROR_USER)
+
+#define ERROR_SOFT_WINAPI       (ERROR_SOFT_OS | ERROR_WINAPI)
+#define ERROR_HARD_WINAPI       (ERROR_HARD_OS | ERROR_WINAPI)
+
+#define ERROR_STDIN_INVALID     (ERROR_HARD_WINAPI | ERROR_STDIN)
+#define ERROR_STDOUT_INVALID    (ERROR_HARD_WINAPI | ERROR_STDOUT)
+#define ERROR_STDERR_INVALID    (ERROR_HARD_WINAPI | ERROR_STDERR)
+#define ERROR_STDOUT_MODE       (ERROR_SOFT_WINAPI | ERROR_STDOUT)
+#define ERROR_STDERR_MODE       (ERROR_SOFT_WINAPI | ERROR_STDERR)
+#define ERROR_STDOUT_VT         (ERROR_SOFT_WINAPI | ERROR_STDOUT)
+#define ERROR_STDERR_VT         (ERROR_SOFT_WINAPI | ERROR_STDERR)
+
+#define ERROR_USER_NULLPTR      (ERROR_SOFT_USER | ERROR_NULLPTR)
+#define ERROR_USER_UNOPENED     (ERROR_SOFT_USER | ERROR_UNOPENED)
+#define ERROR_USER_STDCLOSE     (ERROR_SOFT_USER | ERROR_STDCLOSE)
+#define ERROR_USER_EXISTING     (ERROR_SOFT_USER | ERROR_EXISTING)
+#define ERROR_USER_UNEXISTING   (ERROR_SOFT_USER | ERROR_UNEXISTING)
+#define ERROR_USER_INVALID_FD   (ERROR_SOFT_USER | ERROR_INVALID_FD)
+
+#define ERROR_FILES_UNCLOSED    (ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNCLOSED | ERROR_LEAK)
 
 // #define 
 
 #define iserror(code, value)        ((code & value) == value)
 #define hastype(code)               ((code & (3  << BIT_ERROR_TYPE))        != 0)
-#define hasplatform(code)           ((code & (3  << BIT_ERROR_PLATFORM))    != 0)
-#define hasfault(code)              ((code & (15 << BIT_ERROR_FAULT))       != 0)
+#define hasorigin(code)             ((code & (15 << BIT_ERROR_ORIGIN))      != 0)
 #define hasfile(code)               ((code & (15 << BIT_ERROR_FILE))        != 0)
 #define hasmemory(code)             ((code & (15 << BIT_ERROR_MEMORY))      != 0)
 #define hasstruct(code)             ((code & (15 << BIT_ERROR_STRUCT))      != 0)

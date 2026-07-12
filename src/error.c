@@ -4,9 +4,9 @@
 
 static void default_callback(void* userdata, Context context, ErrorCode code, const char* msg) {
 #ifdef INFO_OS_WINDOWS
-    if (code == ERROR_WIN_STDIN_INVALID || 
-        code == ERROR_WIN_STDOUT_INVALID ||
-        code == ERROR_WIN_STDERR_INVALID) {
+    if (code == ERROR_STDIN_INVALID || 
+        code == ERROR_STDOUT_INVALID ||
+        code == ERROR_STDERR_INVALID) {
             fprintf(stderr, "[WINSTART]: %s", msg);
     }
 #endif

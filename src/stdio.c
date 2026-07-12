@@ -118,6 +118,6 @@ const char* getinput() {
     char* buffer = ckit_getinput_next();
     size_t readed = readfile(0, buffer, CKIT_GETLINE_BUFFER_SIZE + 64);
     memset(&buffer[CKIT_GETLINE_BUFFER_SIZE], 0, 64);
-    throwif(readed > CKIT_GETLINE_BUFFER_SIZE, ERROR_SOFT | ERROR_STDIN, CKIT_ERROR_GETINPUT_OVERFLOW);
+    throwif(readed > CKIT_GETLINE_BUFFER_SIZE, ERROR_SOFT | ERROR_STDIN, ERRMSG_GETINPUT_OVERFLOW);
     return buffer;
 }
