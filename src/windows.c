@@ -22,6 +22,8 @@
 CKIT_BUFFERS(longpath, wchar_t, CKIT_LONGPATH_BUFFER_COUNT, CKIT_LONGPATH_BUFFER_SIZE)
 CKIT_BUFFERS(lasterror, char, CKIT_LASTERROR_BUFFER_COUNT, CKIT_LASTERROR_BUFFER_SIZE)
 
+#define win_ithrow() ithrow(ERROR_HARD_OS | ERROR_WINAPI, lasterror())
+
 #define win_vthrowif(cond) vthrowif(cond, ERROR_HARD_OS | ERROR_WINAPI, lasterror())
 #define win_zthrowif(cond) zthrowif(cond, ERROR_HARD_OS | ERROR_WINAPI, lasterror())
 #define win_ithrowif(cond) ithrowif(cond, ERROR_HARD_OS | ERROR_WINAPI, lasterror())
@@ -41,7 +43,7 @@ static DWORD stderr_mode = 0;
 #define FILES_STACK FILES_COUNT - 3
 
 static int back = FILES_STACK;
-static bool stack[FILES_STACK] = { 255, 254, 253, 252, 251, 250, 249,
+static int stack[FILES_STACK] = { 255, 254, 253, 252, 251, 250, 249,
     248, 247, 246, 245, 244, 243, 242, 241, 240, 239,
     238, 237, 236, 235, 234, 233, 232, 231, 230, 229,
     228, 227, 226, 225, 224, 223, 222, 221, 220, 219,
@@ -75,23 +77,10 @@ static File files[FILES_COUNT] = {
     [2] = { .handle = INVALID_HANDLE_VALUE, .attributes = ATTRIBUTE_WRITE }
 };
 
-static void winckit_quit() {
-    SetConsoleMode(files[1].handle, stdout_mode);
-    SetConsoleMode(files[2].handle, stderr_mode);
-    files[0].handle = INVALID_HANDLE_VALUE;
-    files[1].handle = INVALID_HANDLE_VALUE;
-    files[2].handle = INVALID_HANDLE_VALUE;
-    files[0].attributes &= ~ATTRIBUTE_ISOPEN;
-    files[1].attributes &= ~(ATTRIBUTE_ISOPEN | ATTRIBUTE_ANSI);
-    files[2].attributes &= ~(ATTRIBUTE_ISOPEN | ATTRIBUTE_ANSI);
-#if !CKIT_DONT_ENABLE_ANSI_FOR_WINDOWS
-    SetConsoleMode(files[1].handle, stdout_mode);
-    SetConsoleMode(files[2].handle, stderr_mode);
+void ckit_init() {
+#if CKIT_QUIT_ATEXIT
+    atexit(ckit_quit);
 #endif
-    throwif(back < FILES_STACK, ERROR_USER_UNCLOSED, ERRMSG_UNCLOSED);
-}
-PREMAIN(winckit_init) {
-    atexit(winckit_quit);
     files[0].handle = GetStdHandle(STD_INPUT_HANDLE);
     files[1].handle = GetStdHandle(STD_OUTPUT_HANDLE);
     files[2].handle = GetStdHandle(STD_ERROR_HANDLE);
@@ -110,12 +99,37 @@ PREMAIN(winckit_init) {
     files[2].attributes |= ATTRIBUTE_ANSI;
 #endif
 }
+void ckit_quit() {
+    throwif(back < FILES_STACK, ERROR_USER_UNCLOSED, ERRMSG_UNCLOSED);
+    SetConsoleMode(files[1].handle, stdout_mode);
+    SetConsoleMode(files[2].handle, stderr_mode);
+    files[0].handle = INVALID_HANDLE_VALUE;
+    files[1].handle = INVALID_HANDLE_VALUE;
+    files[2].handle = INVALID_HANDLE_VALUE;
+    files[0].attributes &= ~ATTRIBUTE_ISOPEN;
+    files[1].attributes &= ~(ATTRIBUTE_ISOPEN | ATTRIBUTE_ANSI);
+    files[2].attributes &= ~(ATTRIBUTE_ISOPEN | ATTRIBUTE_ANSI);
+#if !CKIT_DONT_ENABLE_ANSI_FOR_WINDOWS
+    SetConsoleMode(files[1].handle, stdout_mode);
+    SetConsoleMode(files[2].handle, stderr_mode);
+#endif
+}
+
+#if CKIT_INIT_PREMAIN
+PREMAIN(premain) {
+    ckit_init();
+}
+#endif
 
 static const char* lasterror() {
     DWORD code = GetLastError();
     char* buffer = ckit_lasterror_next();
-    bool formatted = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buffer, sizeof(buffer), NULL);
-    if (!formatted) { strcpy(buffer, "Failed to format windows error"); }
+    bool formatted = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buffer, CKIT_LASTERROR_BUFFER_SIZE, NULL);
+    if (!formatted) { strcpy(buffer, "Failed to format windows error"); return buffer; }
+     
+    char* end = buffer;
+    while (*end) { end++; }
+    while (end > buffer && *end <= 32) { *end-- = 0; };
     return buffer;
 }
 static wchar_t* longpath(const char* path) {
@@ -219,12 +233,11 @@ static bool removelongdir(wchar_t* dirpath, bool force) {
     if (first == INVALID_HANDLE_VALUE) {
         win_gthrowif(failure, GetLastError() != ERROR_FILE_NOT_FOUND);
         goto success;
-    } else if (!force) { 
-        goto failure;
     }
 
     do { 
         if (isdotfolder(data.cFileName)) { continue; }
+        if (!force) { goto failure; }
         dirpath[len] = '\\';
         dirpath[len + 1] = 0;
         wcscpy(&dirpath[len + 1], data.cFileName);
@@ -264,8 +277,6 @@ bool copydir(const char* dirpath, const char* destpath) {
     
     wchar_t* longdir = longpath(dirpath);
     wchar_t* longdest = longpath(destpath);
-    zthrowif(checklongdir(longdest), ERROR_USER_EXISTING, ERRMSG_COPYDIR_REPLACE);
-    zthrowif(!checklongdir(longdir), ERROR_USER_UNEXISTING, ERRMSG_FILE_DOESNT_EXIST);
     return copylongdir(longdir, longdest);
 }
 bool checkdir(const char* dirpath) {
@@ -283,14 +294,14 @@ bool removedir(const char* dirpath, bool force) {
     wchar_t* path = longpath(dirpath);
     return removelongdir(path, force);
 }
-bool renamedir(const char* dirpath, const char* destpath) {
+bool renamedir(const char* dirpath, const char* destpath) { 
     zthrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
     zthrowif(!destpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(destpath));
     
     wchar_t* longdir = longpath(dirpath);
     wchar_t* longdest = longpath(destpath);
-    zthrowif(checklongfile(longdest), ERROR_USER_EXISTING, ERRMSG_RENAMEDIR_REPLACE);
-    zthrowif(!checklongfile(longdir), ERROR_USER_UNEXISTING, ERRMSG_FILE_DOESNT_EXIST);
+    zthrowif(checklongdir(longdest), ERROR_USER_EXISTING, ERRMSG_RENAMEDIR_REPLACE);
+    zthrowif(!checklongdir(longdir), ERROR_USER_UNEXISTING, ERRMSG_FILE_DOESNT_EXIST);
     win_zthrowif(!MoveFileW(longdir, longdest));
     return true;
 }
@@ -301,6 +312,15 @@ bool copyfile(const char* filepath, const char* destpath) {
     
     wchar_t* longfile = longpath(filepath);
     wchar_t* longdest = longpath(destpath);
+    size_t lendir = wcslen(longfile);
+    size_t lendest = wcslen(longdest);
+
+    size_t i = 0;
+    size_t j = 0;
+    for (i = 0; longfile[lendir - i] != L'\\'; i++);
+    for (j = 0; i > 0; j++) { longdest[lendest + j] = longfile[lendir - i--]; }
+    longdest[lendest + j] = 0;
+
     zthrowif(checklongfile(longdest), ERROR_USER_EXISTING, ERRMSG_COPYFILE_REPLACE);
     zthrowif(!checklongfile(longfile), ERROR_USER_UNEXISTING, ERRMSG_FILE_DOESNT_EXIST);
     win_zthrowif(!CopyFileW(longfile, longdest, true));
@@ -350,9 +370,10 @@ int openfile(const char* filepath, FileAttributes attributes) {
     stack[back] = 0;
     files[fd].attributes = attributes & ~ATTRIBUTE_ISOPEN;
 
-    DWORD access = GENERIC_READ;
+    DWORD access = 0;
     DWORD creation = OPEN_EXISTING;
 
+    if (attributes & ATTRIBUTE_READ) { access |= GENERIC_READ; }
     if (attributes & ATTRIBUTE_WRITE) { access |= GENERIC_WRITE; }
     if (attributes & ATTRIBUTE_CREATE) { creation = CREATE_NEW; }
     if (attributes & ATTRIBUTE_TRUNCATE) { creation = CREATE_ALWAYS; attributes &= ~ATTRIBUTE_CREATE; }
@@ -360,7 +381,11 @@ int openfile(const char* filepath, FileAttributes attributes) {
     wchar_t* path = longpath(filepath);
     files[fd].handle = CreateFileW(path, access, 0, NULL, creation, FILE_ATTRIBUTE_NORMAL, NULL);
     if (GetLastError() == ERROR_ALREADY_EXISTS && attributes & ATTRIBUTE_IFNEW) { return fd; }
-    win_ithrowif(files[fd].handle == INVALID_HANDLE_VALUE);
+    if (files[fd].handle == INVALID_HANDLE_VALUE) {
+        stack[back++] = fd;
+        win_ithrow();
+        return -1;
+    }
     files[fd].attributes |= ATTRIBUTE_ISOPEN;
     return fd;
 }

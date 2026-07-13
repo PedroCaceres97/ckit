@@ -2,6 +2,10 @@
 #include <ckit/stdio.h>
 
 int main() {
+#if !CKIT_INIT_PREMAIN
+    ckit_init();
+#endif
+
     printlog(PRINT_INFO,    "This is a info");
     printlog(PRINT_DEBUG,   "This is a debug");
     printlog(PRINT_SUCCESS, "This is a success");
@@ -19,4 +23,9 @@ int main() {
     printinform(CONTEXT_HERE, PRINT_WARNING,  "This is a warning");
     printinform(CONTEXT_HERE, PRINT_ERROR,    "This is a error");
     printinform(CONTEXT_HERE, PRINT_FATAL,    "This is a fatal");
+
+#if !CKIT_QUIT_ATEXIT
+    ckit_quit();
+#endif
+    return 0;
 }

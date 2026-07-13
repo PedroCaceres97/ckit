@@ -2,6 +2,7 @@
 #define __CKIT_STDIO_H__
 
 #include <ckit/info.h>
+#include <ckit/config.h>
 
 typedef enum {
     BIT_ATTRIBUTE_READ,

@@ -2,6 +2,10 @@
 #include <ckit/stdio.h>
 
 int main() {
+#if !CKIT_INIT_PREMAIN
+    ckit_init();
+#endif
+
     printformat(ANSI_RED                  "%10s "     ANSI_RESET, "RED");
     printformat(ANSI_GREEN                "%10s "     ANSI_RESET, "GREEN");
     printformat(ANSI_YELLOW               "%10s "     ANSI_RESET, "YELLOW");
@@ -20,4 +24,9 @@ int main() {
         printformat("%aColor: %03i ", "[*]", i, i);
         if (!(i % 8)) { printformat("\n"); }
     }
+
+#if !CKIT_QUIT_ATEXIT
+    ckit_quit();
+#endif
+    return 0;
 }

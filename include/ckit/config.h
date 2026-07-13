@@ -75,4 +75,10 @@
 #define CKIT_LABEL_CONTEXT  "Context"
 #define CKIT_LABEL_MESSAGE  "Message"
 
+#define CKIT_QUIT_ATEXIT 1
+#define CKIT_INIT_PREMAIN 1
+
+void ckit_init();
+void ckit_quit();
+
 #endif /* __CKIT_CONFIG_H__ */

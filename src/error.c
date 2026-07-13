@@ -5,8 +5,6 @@
 static void default_callback(void* userdata, Context context, ErrorCode code, const char* msg) {
     (void)userdata;
     PrintLog log = 0;
-    printf("LOG: %s", msg);
-    return;
     if (code & ERROR_WINDOWS) { log = PRINT_WINAPI; }
     else if (code & ERROR_POSIX) { log = PRINT_POSIX; }
     if (code & ERROR_SOFT) { printlog(log | PRINT_WARNING, msg); }

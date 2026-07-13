@@ -1,8 +1,15 @@
 #include <ckit/stdio.h>
 
 int main() {
-    createdir("ckitfiles");
-    createfile("ckitfiles/unclosed");
-    openfile("ckitfiles/unclosed", ATTRIBUTE_READ);
+#if !CKIT_INIT_PREMAIN
+    ckit_init();
+#endif
+
+    int fd = openfile("ckitfiles/unclosed.txt", ATTRIBUTE_WRITE | ATTRIBUTE_TRUNCATE);
+    printfile(fd, "This is an unclosed file");
+
+#if !CKIT_QUIT_ATEXIT
+    ckit_quit();
+#endif
     return 0;
 }
