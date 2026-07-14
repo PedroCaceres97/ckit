@@ -27,19 +27,19 @@
  * Buffers
  * -------------------------------------------------------------------------- */
 
-#define CKIT_TOSTR_BUFFER_COUNT             32
+#define CKIT_TOSTR_BUFFER_COUNT             8
 #define CKIT_TOSTR_BUFFER_SIZE              128
 
-#define CKIT_ANSI_BUFFER_COUNT              32
+#define CKIT_ANSI_BUFFER_COUNT              8
 #define CKIT_ANSI_BUFFER_SIZE               128
 #define CKIT_ANSI_FORMAT_BUFFER_COUNT       8
 #define CKIT_ANSI_FORMAT_BUFFER_SIZE        512
 
-#define CKIT_FORMAT_BUFFER_COUNT            8
+#define CKIT_FORMAT_BUFFER_COUNT            2
 #define CKIT_FORMAT_BUFFER_SIZE             4096
 #define CKIT_FORMAT_ANSI_SLOT_BUFFER_COUNT  32
 
-#define CKIT_GETLINE_BUFFER_COUNT           4
+#define CKIT_GETLINE_BUFFER_COUNT           2
 #define CKIT_GETLINE_BUFFER_SIZE            4096
 
 /* --------------------------------------------------------------------------
