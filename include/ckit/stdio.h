@@ -34,6 +34,7 @@ typedef struct File File;
 
 FileAttributes attributes(int fd);
 
+int countdir(const char* dirpath);
 bool copydir(const char* dirpath, const char* destpath);
 bool checkdir(const char* dirpath);
 bool createdir(const char* dirpath);

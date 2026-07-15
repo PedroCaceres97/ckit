@@ -154,6 +154,36 @@ static bool isdotfolder(wchar_t* pathname) {
     return !wcscmp(pathname, L".") || !wcscmp(pathname, L"..");
 }
 
+static int countlongdir(wchar_t* dirpath) {
+    size_t len = wcslen(dirpath);
+    dirpath[len] = L'\\';
+    dirpath[len + 1] = L'*';
+    dirpath[len + 2] = 0;
+
+    WIN32_FIND_DATAW data = {0};
+    HANDLE first = FindFirstFileW(dirpath, &data);
+    if (first == INVALID_HANDLE_VALUE) {
+        win_gthrowif(failure, GetLastError() != ERROR_FILE_NOT_FOUND);
+        goto success;
+    }
+
+    int count = 0;
+    do { 
+        if (isdotfolder(data.cFileName)) { continue; }
+        count++;
+    } while(FindNextFileW(first, &data));
+    win_gthrowif(failure, GetLastError() != ERROR_NO_MORE_FILES);
+    
+success:
+    dirpath[len] = 0;
+    if (first != INVALID_HANDLE_VALUE) { win_zthrowif(!FindClose(first)); }
+    return count;
+
+failure:
+    dirpath[len] = 0;
+    if (first != INVALID_HANDLE_VALUE) { win_zthrowif(!FindClose(first)); }
+    return -1;
+}
 static bool copylongdir(wchar_t* dirpath, wchar_t* destpath) {
     size_t lendir = wcslen(dirpath);
     size_t lendest = wcslen(destpath);
@@ -271,6 +301,11 @@ FileAttributes attributes(int fd) {
     return files[fd].attributes;
 }
 
+int countdir(const char* dirpath) {
+    ithrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(dirpath));
+    wchar_t* path = longpath(dirpath);
+    return countlongdir(path);
+}
 bool copydir(const char* dirpath, const char* destpath) {
     zthrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
     zthrowif(!destpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(destpath));
