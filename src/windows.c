@@ -13,16 +13,18 @@
 #include <ckit/config.h>
 #include <ckit/symbols.h>
 
-#define CKIT_LONGPATH_BUFFER_COUNT  2
-#define CKIT_LONGPATH_BUFFER_SIZE   4096
+#define CKIT_LONGPATH_BUFFER_COUNT      2
+#define CKIT_LONGPATH_BUFFER_SIZE       4096
 
-#define CKIT_LASTERROR_BUFFER_COUNT  2
-#define CKIT_LASTERROR_BUFFER_SIZE   2048
+#define CKIT_LASTERROR_BUFFER_COUNT     2
+#define CKIT_LASTERROR_BUFFER_SIZE      4096
 
 CKIT_BUFFERS(longpath, wchar_t, CKIT_LONGPATH_BUFFER_COUNT, CKIT_LONGPATH_BUFFER_SIZE)
 CKIT_BUFFERS(lasterror, char, CKIT_LASTERROR_BUFFER_COUNT, CKIT_LASTERROR_BUFFER_SIZE)
 
+_Thread_local wchar_t* errorpath = NULL;
 #define win_ithrow() ithrow(ERROR_HARD_OS | ERROR_WINAPI, lasterror())
+#define win_zthrow() zthrow(ERROR_HARD_OS | ERROR_WINAPI, lasterror())
 
 #define win_vthrowif(cond) vthrowif(cond, ERROR_HARD_OS | ERROR_WINAPI, lasterror())
 #define win_zthrowif(cond) zthrowif(cond, ERROR_HARD_OS | ERROR_WINAPI, lasterror())
@@ -126,10 +128,23 @@ static const char* lasterror() {
     char* buffer = ckit_lasterror_next();
     bool formatted = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buffer, CKIT_LASTERROR_BUFFER_SIZE, NULL);
     if (!formatted) { strcpy(buffer, "Failed to format windows error"); return buffer; }
-     
+
     char* end = buffer;
     while (*end) { end++; }
     while (end > buffer && *end <= 32) { *end-- = 0; };
+    if (code == ERROR_FILE_NOT_FOUND || code == ERROR_PATH_NOT_FOUND) {
+        // &errorpath[4] -> skip "\\\\?\\"
+        char temp[CKIT_LONGPATH_BUFFER_SIZE] = {0};
+        char* cursor = temp;
+        *end++ = ' ';
+        *end++ = '(';
+        if (errorpath == NULL) { strcpy(temp, "path not provided"); }
+        else { WideCharToMultiByte(CP_UTF8, 0, &errorpath[4], -1, temp, sizeof(temp), NULL, NULL); }
+        while(*cursor) { *end++ = *cursor++; }
+        errorpath = NULL;
+        *end++ = ')';
+        *end++ = 0;
+    }
     return buffer;
 }
 static wchar_t* longpath(const char* path) {
@@ -162,15 +177,15 @@ static int countlongdir(wchar_t* dirpath) {
 
     WIN32_FIND_DATAW data = {0};
     HANDLE first = FindFirstFileW(dirpath, &data);
+    errorpath = dirpath;
+    int count = 0;
     if (first == INVALID_HANDLE_VALUE) {
         win_gthrowif(failure, GetLastError() != ERROR_FILE_NOT_FOUND);
         goto success;
     }
 
-    int count = 0;
     do { 
-        if (isdotfolder(data.cFileName)) { continue; }
-        count++;
+        if (!isdotfolder(data.cFileName)) { count++; }
     } while(FindNextFileW(first, &data));
     win_gthrowif(failure, GetLastError() != ERROR_NO_MORE_FILES);
     
@@ -193,6 +208,7 @@ static bool copylongdir(wchar_t* dirpath, wchar_t* destpath) {
     dirpath[lendir + 2] = 0;
     WIN32_FIND_DATAW data = {0};
     HANDLE first = FindFirstFileW(dirpath, &data);
+    errorpath = dirpath;
     if (first == INVALID_HANDLE_VALUE) {
         win_gthrowif(failure, GetLastError() != ERROR_FILE_NOT_FOUND);
         goto success;
@@ -217,7 +233,10 @@ static bool copylongdir(wchar_t* dirpath, wchar_t* destpath) {
         wcscpy(&destpath[lendest + j + 1], data.cFileName);
         bool isdir = data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && !(data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT);
         if (isdir) { if (!copylongdir(dirpath, destpath)) { goto failure; } }
-        else { win_gthrowif(failure, !CopyFileW(dirpath, destpath, true)); }
+        else { 
+            errorpath = destpath;
+            win_gthrowif(failure, !CopyFileW(dirpath, destpath, true)); 
+        }
     } while(FindNextFileW(first, &data));
     win_gthrowif(failure, GetLastError() != ERROR_NO_MORE_FILES);
 
@@ -239,7 +258,7 @@ static bool checklongdir(wchar_t* dirpath) {
     return attributes & FILE_ATTRIBUTE_DIRECTORY;
 }
 static bool createlongdir(wchar_t* dirpath) {
-    // Skip "\\\\?\\C:\\"
+    // &dirpath[7] -> skip "\\\\?\\C:\\"
     WCHAR* next = &dirpath[7];
     while (*next) {
         if (*next != L'\\' && *next != L'/') { next++; continue; }
@@ -248,6 +267,7 @@ static bool createlongdir(wchar_t* dirpath) {
         win_zthrowif(!result && GetLastError() != ERROR_ALREADY_EXISTS);
         *next++ = L'\\';
     }
+    errorpath = dirpath;
     BOOL result = CreateDirectoryW(dirpath, NULL);
     win_zthrowif(!result && GetLastError() != ERROR_ALREADY_EXISTS);
     return true;
@@ -260,9 +280,11 @@ static bool removelongdir(wchar_t* dirpath, bool force) {
 
     WIN32_FIND_DATAW data = {0};
     HANDLE first = FindFirstFileW(dirpath, &data);
+    errorpath = dirpath;
     if (first == INVALID_HANDLE_VALUE) {
-        win_gthrowif(failure, GetLastError() != ERROR_FILE_NOT_FOUND);
-        goto success;
+        win_gthrowif(failure, GetLastError() != ERROR_PATH_NOT_FOUND);
+        dirpath[len] = 0;
+        return true;
     }
 
     do { 
@@ -273,12 +295,15 @@ static bool removelongdir(wchar_t* dirpath, bool force) {
         wcscpy(&dirpath[len + 1], data.cFileName);
         bool isdir = data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
         if (isdir) { if (!removelongdir(dirpath, true)) { goto failure; } }
-        else { win_gthrowif(failure, !DeleteFileW(dirpath)); }
+        else { 
+            errorpath = dirpath;
+            win_gthrowif(failure, !DeleteFileW(dirpath));
+        }
     } while(FindNextFileW(first, &data));
-    win_gthrowif(failure, GetLastError() != ERROR_NO_MORE_FILES);
     
-success:
+    errorpath = dirpath;
     dirpath[len] = 0;
+    win_gthrowif(failure, GetLastError() != ERROR_NO_MORE_FILES);
     if (first != INVALID_HANDLE_VALUE) { win_zthrowif(!FindClose(first)); }
     win_zthrowif(!RemoveDirectoryW(dirpath));
     return true;
@@ -335,9 +360,12 @@ bool renamedir(const char* dirpath, const char* destpath) {
     
     wchar_t* longdir = longpath(dirpath);
     wchar_t* longdest = longpath(destpath);
-    zthrowif(checklongdir(longdest), ERROR_USER_EXISTING, ERRMSG_RENAMEDIR_REPLACE);
-    zthrowif(!checklongdir(longdir), ERROR_USER_UNEXISTING, ERRMSG_FILE_DOESNT_EXIST);
-    win_zthrowif(!MoveFileW(longdir, longdest));
+    if (!MoveFileW(longdir, longdest)) {
+        DWORD code = GetLastError();
+        if (code == ERROR_ALREADY_EXISTS) { errorpath = longdest; }
+        else { errorpath = longdir; }
+        win_zthrow();
+    }
     return true;
 }
 
@@ -356,9 +384,12 @@ bool copyfile(const char* filepath, const char* destpath) {
     for (j = 0; i > 0; j++) { longdest[lendest + j] = longfile[lendir - i--]; }
     longdest[lendest + j] = 0;
 
-    zthrowif(checklongfile(longdest), ERROR_USER_EXISTING, ERRMSG_COPYFILE_REPLACE);
-    zthrowif(!checklongfile(longfile), ERROR_USER_UNEXISTING, ERRMSG_FILE_DOESNT_EXIST);
-    win_zthrowif(!CopyFileW(longfile, longdest, true));
+    if (!CopyFileW(longfile, longdest, true)) {
+        DWORD code = GetLastError();
+        if (code == ERROR_ALREADY_EXISTS) { errorpath = longdest; }
+        else { errorpath = longfile; }
+        win_zthrow();
+    }
     return true;
 }
 bool checkfile(const char* filepath) {
@@ -373,6 +404,7 @@ bool createfile(const char* filepath) {
     DWORD access = GENERIC_READ;
     DWORD creation = CREATE_ALWAYS;
     wchar_t* path = longpath(filepath);
+    errorpath = path;
     HANDLE file = CreateFileW(path, access, 0, NULL, creation, FILE_ATTRIBUTE_NORMAL, NULL);
     win_zthrowif(file == INVALID_HANDLE_VALUE);
     win_zthrowif(!CloseHandle(file));
@@ -382,6 +414,7 @@ bool removefile(const char* filepath) {
     zthrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
     
     wchar_t* path = longpath(filepath);
+    errorpath = path;
     win_zthrowif(!DeleteFileW(path) && GetLastError() != ERROR_FILE_NOT_FOUND);
     return true;
 }
@@ -391,9 +424,12 @@ bool renamefile(const char* filepath, const char* destpath) {
     
     wchar_t* longfile = longpath(filepath);
     wchar_t* longdest = longpath(destpath);
-    zthrowif(checklongfile(longdest), ERROR_USER_EXISTING, ERRMSG_RENAMEFILE_REPLACE);
-    zthrowif(!checklongfile(longfile), ERROR_USER_UNEXISTING, ERRMSG_FILE_DOESNT_EXIST);
-    win_zthrowif(!MoveFileW(longfile, longdest));
+    if (!MoveFileW(longfile, longdest)) {
+        DWORD code = GetLastError();
+        if (code == ERROR_ALREADY_EXISTS) { errorpath = longdest; }
+        else { errorpath = longfile; }
+        win_zthrow();
+    }
     return true;
 }
 
@@ -414,6 +450,7 @@ int openfile(const char* filepath, FileAttributes attributes) {
     if (attributes & ATTRIBUTE_TRUNCATE) { creation = CREATE_ALWAYS; attributes &= ~ATTRIBUTE_CREATE; }
 
     wchar_t* path = longpath(filepath);
+    errorpath = path;
     files[fd].handle = CreateFileW(path, access, 0, NULL, creation, FILE_ATTRIBUTE_NORMAL, NULL);
     if (GetLastError() == ERROR_ALREADY_EXISTS && attributes & ATTRIBUTE_IFNEW) { return fd; }
     if (files[fd].handle == INVALID_HANDLE_VALUE) {
@@ -441,6 +478,7 @@ size_t dumpfile(const char* filepath, char* buf, size_t max) {
     DWORD access = GENERIC_READ;
     DWORD creation = CREATE_ALWAYS;
     wchar_t* path = longpath(filepath);
+    errorpath = path;
     HANDLE file = CreateFileW(path, access, 0, NULL, creation, FILE_ATTRIBUTE_NORMAL, NULL);
     win_zthrowif(file == INVALID_HANDLE_VALUE);
     

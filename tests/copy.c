@@ -5,9 +5,6 @@ int main() {
     ckit_init();
 #endif
 
-    removedir("ckitfiles/copy", true);
-    createdir("ckitfiles/copy");
-
     copydir("ckitfiles/tocopydir", "ckitfiles/copy");
     copyfile("ckitfiles/tocopy.txt", "ckitfiles/copy");
 
