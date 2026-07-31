@@ -31,6 +31,7 @@
 #define ERRMSG_RENAMEDIR_REPLACE    "Cant rename a directory into an already existent directory"
 
 #define ERRMSG_NULLPTR(ptr)         "Memory address is a nullptr -> " LITERAL(ptr)
+#define ERRMSG_ZERO_SIZE(v)         "Unexpected zero value in " LITERAL(v)
 #define ERRMSG_FOREIGN_PTR          "Memory address does not belong to struct"
 #define ERRMSG_ALREADY_FREE         "Memory address is already free"
 #define ERRMSG_NOT_ALLOCATED        "Memory address was not allocated"
@@ -38,25 +39,13 @@
 
 #define ERRMSG_GETINPUT_OVERFLOW    "Input overflowed"
 
+#define ERRMSG_OVER_MAX_POSITIONALS "Command expects more positionals than compiled CKIT_MAX_POSITIONALS"
+
 // #define CKIT_ERROR_NON_EMPTY_SLAB       "Destroying non empty slab"
 // #define CKIT_ERROR_NON_EMPTY_TRACKER    "Destroying non empty tracker"
 // #define CKIT_ERROR_NON_EMPTY_VECTOR     "Destroying non empty vector"
 
 #define ERRMSG_MEMORY_COPY_ZERO     "Called a memory copying operation with zero size or count"
-
-/*
-    32bits
-
-    4bits
-    4bits
-    4bits
-    4bits
-
-    4bits
-    4bits
-    4bits
-    4bits
-*/
 
 typedef enum {
     BIT_ERROR_TYPE      = 0,
@@ -135,7 +124,6 @@ typedef enum {
 #define ERROR_STDOUT_VT         (ERROR_SOFT_WINAPI | ERROR_STDOUT)
 #define ERROR_STDERR_VT         (ERROR_SOFT_WINAPI | ERROR_STDERR)
 
-#define ERROR_USER_NULLPTR      (ERROR_SOFT_USER | ERROR_NULLPTR)
 #define ERROR_USER_UNOPENED     (ERROR_SOFT_USER | ERROR_UNOPENED)
 #define ERROR_USER_UNREADABLE   (ERROR_SOFT_USER | ERROR_UNREADABLE)
 #define ERROR_USER_UNWRITEABLE  (ERROR_SOFT_USER | ERROR_UNWRITEABLE)
@@ -145,9 +133,8 @@ typedef enum {
 #define ERROR_USER_UNEXISTING   (ERROR_SOFT_USER | ERROR_UNEXISTING)
 #define ERROR_USER_INVALID_FD   (ERROR_SOFT_USER | ERROR_INVALID_FD)
 
-#define ERROR_FILES_UNCLOSED    (ERROR_SOFT | ERROR_WINDOWS | ERROR_USER | ERROR_UNCLOSED | ERROR_LEAK)
-
-// #define 
+#define ERROR_USER_NULLPTR      (ERROR_SOFT_USER | ERROR_NULLPTR)
+#define ERROR_USER_ZERO_SIZE    (ERROR_SOFT_USER | ERROR_ZERO_SIZE)
 
 #define iserror(code, value)        ((code & value) == value)
 #define hastype(code)               ((code & (3  << BIT_ERROR_TYPE))        != 0)
@@ -155,45 +142,44 @@ typedef enum {
 #define hasfile(code)               ((code & (15 << BIT_ERROR_FILE))        != 0)
 #define hasmemory(code)             ((code & (15 << BIT_ERROR_MEMORY))      != 0)
 #define hasstruct(code)             ((code & (15 << BIT_ERROR_STRUCT))      != 0)
-#define hasoperation(code)          ((code & (63 << BIT_ERROR_OPERATION))   != 0)
 
 void throwcallback(void* userdata, void (*callback)(void* _userdata, Context _context, ErrorCode _code, const char* msg));
 void __throw(Context context, ErrorCode code, const char* msg);
 void __throwf(Context context, ErrorCode code, const char* fmt, ...);
 
-#define throw(code, msg)                        do { __throw(CONTEXT_HERE, code, msg); } while(0)
-#define throwf(code, fmt, ...)                  do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__); } while(0)
-#define throwif(cond, code, msg)                if ((cond)) { throw(code, msg); }
-#define throwiff(cond, code, fmt, ...)          if ((cond)) { throwf(code, fmt, ##__VA_ARGS__); }
+#define throw(code, msg)                        do { __throw(CONTEXT_HERE, code, msg);                  } while(0)
+#define throwf(code, fmt, ...)                  do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);  } while(0)
+#define throwif(cond, code, msg)                if ((cond)) { throw(code, msg);                         }
+#define throwiff(cond, code, fmt, ...)          if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);         }
 
-#define vthrow(code, msg)                       do { __throw(CONTEXT_HERE, code, msg);                   return; } while(0)
-#define vthrowf(code, fmt, ...)                 do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);   return; } while(0)
-#define vthrowif(cond, code, msg)               if ((cond)) { throw(code, msg);                     return; }
-#define vthrowiff(cond, code, fmt, ...)         if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);     return; }
+#define vthrow(code, msg)                       do { __throw(CONTEXT_HERE, code, msg);                  return; } while(0)
+#define vthrowf(code, fmt, ...)                 do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);  return; } while(0)
+#define vthrowif(cond, code, msg)               if ((cond)) { throw(code, msg);                         return; }
+#define vthrowiff(cond, code, fmt, ...)         if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);         return; }
 
-#define nthrow(code, msg)                       do { __throw(CONTEXT_HERE, code, msg);                   return NULL; } while(0)
-#define nthrowf(code, fmt, ...)                 do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);   return NULL; } while(0)
-#define nthrowif(cond, code, msg)               if ((cond)) { throw(code, msg);                     return NULL; }
-#define nthrowiff(cond, code, fmt, ...)         if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);     return NULL; }
+#define nthrow(code, msg)                       do { __throw(CONTEXT_HERE, code, msg);                  return NULL; } while(0)
+#define nthrowf(code, fmt, ...)                 do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);  return NULL; } while(0)
+#define nthrowif(cond, code, msg)               if ((cond)) { throw(code, msg);                         return NULL; }
+#define nthrowiff(cond, code, fmt, ...)         if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);         return NULL; }
 
-#define zthrow(code, msg)                       do { __throw(CONTEXT_HERE, code, msg);                   return 0; } while(0)
-#define zthrowf(code, fmt, ...)                 do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);   return 0; } while(0)
-#define zthrowif(cond, code, msg)               if ((cond)) { throw(code, msg);                     return 0; }
-#define zthrowiff(cond, code, fmt, ...)         if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);     return 0; }
+#define zthrow(code, msg)                       do { __throw(CONTEXT_HERE, code, msg);                  return 0; } while(0)
+#define zthrowf(code, fmt, ...)                 do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);  return 0; } while(0)
+#define zthrowif(cond, code, msg)               if ((cond)) { throw(code, msg);                         return 0; }
+#define zthrowiff(cond, code, fmt, ...)         if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);         return 0; }
 
-#define ithrow(code, msg)                       do { __throw(CONTEXT_HERE, code, msg);                   return -1; } while(0)
-#define ithrowf(code, fmt, ...)                 do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);   return -1; } while(0)
-#define ithrowif(cond, code, msg)               if ((cond)) { throw(code, msg);                     return -1; }
-#define ithrowiff(cond, code, fmt, ...)         if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);     return -1; }
+#define ithrow(code, msg)                       do { __throw(CONTEXT_HERE, code, msg);                  return -1; } while(0)
+#define ithrowf(code, fmt, ...)                 do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);  return -1; } while(0)
+#define ithrowif(cond, code, msg)               if ((cond)) { throw(code, msg);                         return -1; }
+#define ithrowiff(cond, code, fmt, ...)         if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);         return -1; }
 
-#define rthrow(rvalue, code, msg)               do { __throw(CONTEXT_HERE, code, msg);                   return rvalue; } while(0)
-#define rthrowf(rvalue, code, fmt, ...)         do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);   return rvalue; } while(0)
-#define rthrowif(rvalue, cond, code, msg)       if ((cond)) { throw(code, msg);                     return rvalue; }
-#define rthrowiff(rvalue, cond, code, fmt, ...) if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);     return rvalue; }
+#define rthrow(rvalue, code, msg)               do { __throw(CONTEXT_HERE, code, msg);                  return rvalue; } while(0)
+#define rthrowf(rvalue, code, fmt, ...)         do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);  return rvalue; } while(0)
+#define rthrowif(rvalue, cond, code, msg)       if ((cond)) { throw(code, msg);                         return rvalue; }
+#define rthrowiff(rvalue, cond, code, fmt, ...) if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);         return rvalue; }
 
-#define gthrow(gotof, code, msg)                do { __throw(CONTEXT_HERE, code, msg);                   goto gotof; } while(0)
-#define gthrowf(gotof, code, fmt, ...)          do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);   goto gotof; } while(0)
-#define gthrowif(gotof, cond, code, msg)        if ((cond)) { throw(code, msg);                     goto gotof; }
-#define gthrowiff(gotof, cond, code, fmt, ...)  if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);     goto gotof; }
+#define gthrow(gotof, code, msg)                do { __throw(CONTEXT_HERE, code, msg);                  goto gotof; } while(0)
+#define gthrowf(gotof, code, fmt, ...)          do { __throwf(CONTEXT_HERE, code, fmt, ##__VA_ARGS__);  goto gotof; } while(0)
+#define gthrowif(gotof, cond, code, msg)        if ((cond)) { throw(code, msg);                         goto gotof; }
+#define gthrowiff(gotof, cond, code, fmt, ...)  if ((cond)) { throwf(code, fmt, ##__VA_ARGS__);         goto gotof; }
 
 #endif /* __CKIT_ERROR_H__ */

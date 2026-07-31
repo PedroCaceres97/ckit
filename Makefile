@@ -88,7 +88,7 @@ ifeq ($(ENABLE_SANITIZERS),1)
 endif
 
 MODE ?= release
-TOOLCHAIN ?= clang-msvc
+TOOLCHAIN ?= gcc
 include makefiles/$(TOOLCHAIN).mk
 include makefiles/architecture.mk
 include makefiles/test-generator.mk

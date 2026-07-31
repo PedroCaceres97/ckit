@@ -27,6 +27,8 @@
  * Buffers
  * -------------------------------------------------------------------------- */
 
+#define CKIT_MAX_POSITIONALS 16
+
 #define CKIT_TOSTR_BUFFER_COUNT             8
 #define CKIT_TOSTR_BUFFER_SIZE              128
 
