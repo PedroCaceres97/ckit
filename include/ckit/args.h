@@ -31,19 +31,20 @@ typedef struct Command {
     const char* longname; // Command* must end with this field set to NULL
     const char* description;
     struct Command* subcommands; 
-    const char* positionals[CKIT_MAX_POSITIONALS];
+    const char** positionals;
     int minpositionals;
-    int maxpositionals; // -1 unlimited
+    int maxpositionals; // capacity of positionals
     int countpositionals; // positionals parsed
     bool parsed;
 } Command;
  
 #define ARGS_HELP           1
 #define ARGS_OKAY           0
-#define ARGS_BAD_ARGUMENT   -1
+#define ARGS_CODER          -1
 #define ARGS_MISSING        -2
 #define ARGS_POSITIONAL     -3
 #define ARGS_UNKOWN         -4
+#define ARGS_VALUE          -5
 
 /* 
  * subcommands must start at commands[1] as commands[0]
@@ -52,10 +53,11 @@ typedef struct Command {
  * Return value:
  *      1 if -h or --help was parsed
  *      0 in case of no error
- *      -1 in case of bad arguments (such as NULL argc or zero argc)
+ *      -1 in case of bad data such as argv == NULL, argc == 0 or 
  *      -2 in case of missing command/flag
  *      -3 in case of missing or extra argument/positional
  *      -4 in case of unkown command/flag
+ *      -5 in case of error at parsing flag value
  */
 int parseargv(Command* root, const char** argv, int argc);
 

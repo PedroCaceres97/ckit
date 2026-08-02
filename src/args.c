@@ -11,6 +11,7 @@ typedef struct {
 #define ishelp(arg) (arg[1] == 'h' && arg[2] == 'e' && arg[3] == 'l' && arg[4] == 'p' && !arg[5])
 
 static void help(Command* command);
+static void unkown(const char* longname, char shortname);
 static void throwusage(Command* command, Flag* flag);
 
 static Command* matchcommand(const char* arg, Command* commands) {
@@ -34,7 +35,34 @@ static int longflag(Command* command, Args* args) {
     }
 
     if (!flag->type) { return ARGS_UNKOWN; }
-    if (equal && flag->type == FLAG_BOOLEAN) {  }
+    if (equal && flag->type == FLAG_BOOLEAN) { return ARGS_VALUE; }
+
+    const char* value = NULL;
+    if (flag->type == FLAG_BOOLEAN) { 
+        flag->data.boolean = true;
+        goto success;
+    } else if (equal) { 
+        value = equal + 1; 
+    } else { 
+        args->argc--;
+        args->argv++;
+        value = *args->argv;
+        if (!args->argc || !*args->argv) { return ARGS_MISSING; } 
+    }
+
+    if (flag->type == FLAG_STRING) {
+        flag->data.string = value;
+    } else if (flag->type == FLAG_INTEGER) {
+        while (isdigit(*value)) {
+            flag->data.integer *= 10;
+            flag->data.integer += (*value - '0');
+        }
+    }
+
+success:
+    flag->parsed = true;
+    if (flag->callback) { flag->callback(flag); }
+    return ARGS_OKAY;
 }
 static int shortflag(Command* command, Args* args) {
     Flag* table[256] = {0};
@@ -57,7 +85,7 @@ static int shortflag(Command* command, Args* args) {
         } else if (flag->type == FLAG_INTEGER) {
             arg++;
             value = true;
-            if (!isdigit(*arg) && *arg) { throwusage(NULL, flag); return }
+            if (!isdigit(*arg) && *arg) { throwusage(NULL, flag); return ARGS_VALUE; }
         }
     }
 
