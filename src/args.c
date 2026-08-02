@@ -3,24 +3,15 @@
 #include <ckit/error.h>
 
 typedef struct {
-    int argc;
     const char** argv;
+    int argc;
+    int onlypositionals;
 } Args;
+
+#define ishelp(arg) (arg[1] == 'h' && arg[2] == 'e' && arg[3] == 'l' && arg[4] == 'p' && !arg[5])
 
 static void help(Command* command);
 static void throwusage(Command* command, Flag* flag);
-
-static bool ishelp(const char* arg) {
-    if (*arg++ != '-') { return false; }
-    if (*arg == 'h') { return *++arg == '\0'; }
-    if (*arg++ != '-') { return false; }
-
-    return  *arg++ == 'h' &&
-            *arg++ == 'e' &&
-            *arg++ == 'l' &&
-            *arg++ == 'p' &&
-            *arg   == '\0';
-}
 
 static Command* matchcommand(const char* arg, Command* commands) {
     while (commands->longname) {
@@ -30,40 +21,92 @@ static Command* matchcommand(const char* arg, Command* commands) {
     return NULL;
 }
 
-static int parseflag(Command* command, const char* arg) {
-    if (*arg++ != '-') { return -4; }
-    if (!*arg) { return -2; }
+static int longflag(Command* command, Args* args) {
+    const char* arg = *args->argv + 2;
+    const char* equal = strrchr(arg, '=');
+    size_t len = strlen(arg);
+    if (equal) { len = PTRPTR(equal, arg); }
 
-    int len = 0;
-    Flag* current = command->flags;
-    while (current->type) {
-        len = 1;
-        if (*arg != '-' && arg[1] == current->shortname && current->shortname) { break; }
-        
-        int len = strlen(current->longname);
-        if (!strncmp(++arg, current->longname, len)) { break; }
+    Flag* flag = command->flags;
+    while (flag->type) {
+        if (!strncmp(arg, flag->longname, len)) { break; }
+        flag++;
     }
+
+    if (!flag->type) { return ARGS_UNKOWN; }
+    if (equal && flag->type == FLAG_BOOLEAN) {  }
+}
+static int shortflag(Command* command, Args* args) {
+    Flag* table[256] = {0};
+    Flag* flags = command->flags;
+    while (flags->type) {
+        if (!flags->shortname) { continue; }
+        if (flags->shortname == 'h') { ithrow(ERROR_SOFT_USER, ERRMSG_RESERVED_SHORT_HELP); }
+        table[(unsigned char)flags->shortname] = flags;
+    }
+
+    bool value = false;
+    const char* arg = *args->argv;
+    while (*arg++) { // skip '-' in first loop
+        Flag* flag = table[(unsigned char)*arg];
+        if (!flag) { continue; }
+
+        if (flag->type == FLAG_BOOLEAN) { 
+            flag->parsed = true;
+            flag->data.boolean = true; 
+        } else if (flag->type == FLAG_INTEGER) {
+            arg++;
+            value = true;
+            if (!isdigit(*arg) && *arg) { throwusage(NULL, flag); return }
+        }
+    }
+
 }
 
+static int parseflag(Command* command, Args* args) {
+    const char* arg = *args->argv;
+    if (!*++arg) { return ARGS_MISSING; } // "-" case
+    if (*arg == 'h' || (*arg == '-' && ishelp(arg))) { help(command); return ARGS_HELP; } 
+
+    if (!command->flags || !command->flags->type) { return ARGS_UNKOWN; }
+    if (*arg != '-') { return shortflag(command, args); }
+    if (!*arg) { args->onlypositionals = true; return ARGS_OKAY; }
+    return longflag(command, args);
+}
 static int parsecommand(Command* command, Args* args) {
-    if (!args->argv || !args->argc) { throwusage(command, NULL); return -2; }
-    
-    Command* sub = matchcommand(*args->argv, command->subcommands);
-    if (sub) {
-        args->argc--;
-        args->argv++;
-        return parsecommand(sub, args);
-    }
+    if (!args->argv || !args->argc) { throwusage(command, NULL); return ARGS_MISSING; }
 
     while (args->argc) {
         const char* arg = *args->argv;
-        if (ishelp(arg)) { help(command); return 1; }
+        if (args->onlypositionals) { goto positional; }
 
         if (*arg == '-') {
-            int error = parseflag(command, arg);
+            int error = parseflag(command, args);
             if (error) { return error; }
+            args->argc--;
+            args->argv++;
+            continue;
         }
+
+        Command* sub = matchcommand(*args->argv, command->subcommands);
+        if (sub) {
+            args->argc--;
+            args->argv++;
+            return parsecommand(sub, args);
+        }
+
+    positional:
+        if (command->countpositionals >= command->maxpositionals) { return ARGS_POSITIONAL; }
+        command->positionals[command->countpositionals++] = arg;
+        args->argc--;
+        args->argv++;
     }
+
+    if (command->countpositionals < command->minpositionals) { return ARGS_POSITIONAL; }
+    
+    command->parsed = true;
+    if (command->callback) { command->callback(command); }
+    return ARGS_OKAY;
 }
 
 int parseargv(Command* root, const char** argv, int argc) {

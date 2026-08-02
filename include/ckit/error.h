@@ -39,6 +39,8 @@
 
 #define ERRMSG_GETINPUT_OVERFLOW    "Input overflowed"
 
+#define ERRMSG_RESERVED_LONG_HELP  "flag->longname cant be reserved 'help'"
+#define ERRMSG_RESERVED_SHORT_HELP  "flag->shorname cant be reserved 'h'"
 #define ERRMSG_OVER_MAX_POSITIONALS "Command expects more positionals than compiled CKIT_MAX_POSITIONALS"
 
 // #define CKIT_ERROR_NON_EMPTY_SLAB       "Destroying non empty slab"

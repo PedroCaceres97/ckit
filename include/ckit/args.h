@@ -18,8 +18,8 @@ typedef struct Flag {
         const char* string;
     } data;
     FlagType type;
-    const char shortname;
-    const char* longname;
+    const char shortname; // 'h' IS RESERVED
+    const char* longname; // "help" IS RESERVED, must not contain "--"
     const char* description;
     int (*callback)(struct Flag* flag);
     bool parsed;
@@ -38,6 +38,13 @@ typedef struct Command {
     bool parsed;
 } Command;
  
+#define ARGS_HELP           1
+#define ARGS_OKAY           0
+#define ARGS_BAD_ARGUMENT   -1
+#define ARGS_MISSING        -2
+#define ARGS_POSITIONAL     -3
+#define ARGS_UNKOWN         -4
+
 /* 
  * subcommands must start at commands[1] as commands[0]
  * is the default workflow.
