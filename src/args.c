@@ -24,12 +24,13 @@ static Command* matchcommand(const char* arg, Command* commands) {
 
 static int longflag(Command* command, Args* args) {
     const char* arg = *args->argv + 2;
-    const char* equal = strrchr(arg, '=');
+    const char* equal = strchr(arg, '=');
     size_t len = strlen(arg);
     if (equal) { len = PTRPTR(equal, arg); }
 
     Flag* flag = command->flags;
     while (flag->type) {
+        if (len != strlen(flag->longname)) { flag++; continue; }
         if (!strncmp(arg, flag->longname, len)) { break; }
         flag++;
     }
@@ -42,7 +43,7 @@ static int longflag(Command* command, Args* args) {
         flag->data.boolean = true;
         goto success;
     } else if (equal) { 
-        value = equal + 1; 
+        value = equal + 1;
     } else { 
         args->argc--;
         args->argv++;
@@ -53,9 +54,11 @@ static int longflag(Command* command, Args* args) {
     if (flag->type == FLAG_STRING) {
         flag->data.string = value;
     } else if (flag->type == FLAG_INTEGER) {
-        while (isdigit(*value)) {
+        flag->data.integer = 0;
+        if (!isdigit((unsigned char)*value)) { return ARGS_VALUE; }
+        while (isdigit((unsigned char)*value)) {
             flag->data.integer *= 10;
-            flag->data.integer += (*value - '0');
+            flag->data.integer += ((unsigned char)*value++ - '0');
         }
     }
 
@@ -65,30 +68,46 @@ success:
     return ARGS_OKAY;
 }
 static int shortflag(Command* command, Args* args) {
-    Flag* table[256] = {0};
-    Flag* flags = command->flags;
-    while (flags->type) {
-        if (!flags->shortname) { continue; }
-        if (flags->shortname == 'h') { ithrow(ERROR_SOFT_USER, ERRMSG_RESERVED_SHORT_HELP); }
-        table[(unsigned char)flags->shortname] = flags;
-    }
-
-    bool value = false;
+    int error = ARGS_OKAY;
     const char* arg = *args->argv;
+    const char* value = NULL;
     while (*arg++) { // skip '-' in first loop
-        Flag* flag = table[(unsigned char)*arg];
-        if (!flag) { continue; }
+        Flag* flag = command->flags;
+        while (flag->type) {
+            if (!flag->shortname) { flag++; continue; }
+            if (flag->shortname == 'h') { ithrow(ERROR_SOFT_USER, ERRMSG_RESERVED_SHORT_HELP); }
+            if (flag->shortname == *arg) { break; }
+        }
+        if (!flag->type) { error = ARGS_MISSING; goto failed; }
 
+        flag->ocurrences++;
         if (flag->type == FLAG_BOOLEAN) { 
-            flag->parsed = true;
             flag->data.boolean = true; 
+        } else if (arg[1]) { 
+            value = arg + 1; 
+        } else {
+            args->argc--;
+            args->argv++;
+            value = *args->argv;
+            if (!args->argc || !*args->argv) { error = ARGS_MISSING; goto failed; } 
+        }
+
+        if (flag->type == FLAG_STRING) {
+            flag->data.string = value;
         } else if (flag->type == FLAG_INTEGER) {
-            arg++;
-            value = true;
-            if (!isdigit(*arg) && *arg) { throwusage(NULL, flag); return ARGS_VALUE; }
+            flag->data.integer = 0;
+            if (!isdigit((unsigned char)*value)) { error = ARGS_VALUE; goto failed; }
+            while (isdigit((unsigned char)*value)) {
+                flag->data.integer *= 10;
+                flag->data.integer += ((unsigned char)*value++ - '0');
+            }
         }
     }
 
+failed:
+    Flag* flags = command->flags;
+    while (flags->type) { flags->ocurrences = 0; }
+    return error;
 }
 
 static int parseflag(Command* command, Args* args) {
@@ -98,7 +117,7 @@ static int parseflag(Command* command, Args* args) {
 
     if (!command->flags || !command->flags->type) { return ARGS_UNKOWN; }
     if (*arg != '-') { return shortflag(command, args); }
-    if (!*arg) { args->onlypositionals = true; return ARGS_OKAY; }
+    if (!*arg) { args->onlypositionals = true; return ARGS_OKAY; } // stop flag parsing if "--"
     return longflag(command, args);
 }
 static int parsecommand(Command* command, Args* args) {

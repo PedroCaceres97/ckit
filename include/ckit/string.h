@@ -2,6 +2,7 @@
 #define __CKIT_STRING_H__
 
 #include <ckit/info.h>
+#include <ckit/utils.h>
 
 int i32str_out(char* dest, int32_t value, bool plus, bool space);
 int i64str_out(char* dest, int64_t value, bool plus, bool space);
@@ -30,5 +31,43 @@ const char* sizestr(size_t value);
 const char* diffstr(ptrdiff_t value);
 const char* bytesstr(size_t value);
 #define boolstr(value) TERNARY(!!(value), "Yes", "No")
+
+typedef struct String {
+    char* data;
+    size_t size;
+    size_t capacity;
+    bool allocated;
+} String;
+
+void stringdestroy(String* str);
+String* stringcreate(String* str);
+String* stringduplicate(String* str);
+String* stringfrom(String* str, const char* src);
+
+char* stringcstr(String* str);
+size_t stringsize(String* str);
+
+char* stringat(String* str, size_t index);
+void stringset(String* str, size_t index, char ch);
+char stringget(String* str, size_t index);
+void stringresize(String* str, size_t size);
+void stringreserve(String* str, size_t capacity);
+void stringshrink(String* str);
+void stringclear(String* str);
+
+void stringerase(String* str, size_t index);
+void stringpopback(String* str);
+void stringpopfront(String* str);
+
+void stringinsert(String* str, size_t index, char ch);
+void stringpushback(String* str, char ch);
+void stringpushfront(String* str, char ch);
+
+void stringfill(String* str, char ch, size_t offset, size_t count);
+void stringcopy(String* str, const char* src, size_t offset, size_t count);
+
+void stringappend(String* str, const char* src);
+void stringappendn(String* str, const char* src, size_t count);
+void stringappendch(String* str, char ch, size_t coutn);
 
 #endif /* __CKIT_STRING_H__ */

@@ -22,7 +22,7 @@ typedef struct Flag {
     const char* longname; // "help" IS RESERVED, must not contain "--"
     const char* description;
     int (*callback)(struct Flag* flag);
-    bool parsed;
+    int ocurrences;
 } Flag;
 
 typedef struct Command {

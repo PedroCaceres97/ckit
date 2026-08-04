@@ -4,9 +4,9 @@
 #include <ckit/utils.h>
 
 #define CKIT_PREFIX(a) CONCAT2(ckit_, a)
-#define CKIT_NEXT_SYMBOL(a) CKIT_PREFIX(CONCAT2(a, _next))
-#define CKIT_INDEX_SYMBOL(a) CKIT_PREFIX(CONCAT2(a, _index))
-#define CKIT_BUFFERS_SYMBOL(a) CKIT_PREFIX(CONCAT2(a, _buffers))
+#define CKIT_NEXT_SUFFIX(a) CKIT_PREFIX(CONCAT2(a, _next))
+#define CKIT_INDEX_SUFFIX(a) CKIT_PREFIX(CONCAT2(a, _index))
+#define CKIT_BUFFERS_SUFFIX(a) CKIT_PREFIX(CONCAT2(a, _buffers))
 
 #define CKIT_BUFFERS_SYMBOLS(buffers, index, next, type, count, size)   \
     static _Thread_local type buffers[count][size] = {0};               \
@@ -15,9 +15,13 @@
         if (index == count) { index = 0; }                              \
         return buffers[index++];                                        \
     }
-#define CKIT_BUFFERS(identifier, type, count, size) CKIT_BUFFERS_SYMBOLS(   \
-                            CKIT_BUFFERS_SYMBOL(identifier),                \
-                            CKIT_INDEX_SYMBOL(identifier),                  \
-                            CKIT_NEXT_SYMBOL(identifier), type, count, size)
+#define CKIT_BUFFERS(identifier, type, count, size) \
+    CKIT_BUFFERS_SYMBOLS(   CKIT_BUFFERS_SUFFIX(identifier),                \
+                            CKIT_INDEX_SUFFIX(identifier),                  \
+                            CKIT_NEXT_SUFFIX(identifier),                   \
+                            type, count, size)
+
+#define CKIT_CREATE(ptr, type) FNLIKE( if (ptr) { ptr->allocated = false; } else { ptr = (type*)ckit_calloc(1, sizeof(type)); ptr->allocated = true; } )
+#define CKIT_DESTROY(ptr) FNLIKE( if (ptr->allocated) { ckit_free((void*)ptr); } )    
 
 #endif /* __CKIT_SYMBOLS_H__ */

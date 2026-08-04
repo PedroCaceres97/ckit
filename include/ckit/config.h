@@ -48,7 +48,8 @@
  * Structs
  * -------------------------------------------------------------------------- */
 
-#define CKIT_VECTOR_MINIMUM_SIZE 10
+#define CKIT_STRING_MINIMUM_SIZE 16
+#define CKIT_VECTOR_MINIMUM_SIZE 16
 
 /* --------------------------------------------------------------------------
  * Log
@@ -80,7 +81,19 @@
 #define CKIT_QUIT_ATEXIT 1
 #define CKIT_INIT_PREMAIN 1
 
-void ckit_init();
+typedef struct CkitInfo {
+    void (*free)(void* ptr);
+    void* (*malloc)(size_t bytes);
+    void* (*calloc)(size_t count, size_t size);
+    void* (*realloc)(void* ptr, size_t bytes);
+} CkitInfo;
+
+void ckit_init(CkitInfo info);
 void ckit_quit();
+
+void ckit_free(void* ptr);
+void* ckit_malloc(size_t bytes);
+void* ckit_calloc(size_t count, size_t size);
+void* ckit_realloc(void* ptr, size_t bytes);
 
 #endif /* __CKIT_CONFIG_H__ */

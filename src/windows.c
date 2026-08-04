@@ -89,10 +89,7 @@ static File files[FILES_COUNT] = {
     [2] = { .handle = INVALID_HANDLE_VALUE, .attributes = ATTRIBUTE_WRITE }
 };
 
-void ckit_init() {
-#if CKIT_QUIT_ATEXIT
-    atexit(ckit_quit);
-#endif
+void ckit_platform_init() {
     files[0].handle = GetStdHandle(STD_INPUT_HANDLE);
     files[1].handle = GetStdHandle(STD_OUTPUT_HANDLE);
     files[2].handle = GetStdHandle(STD_ERROR_HANDLE);
@@ -111,7 +108,7 @@ void ckit_init() {
     files[2].attributes |= ATTRIBUTE_ANSI;
 #endif
 }
-void ckit_quit() {
+void ckit_platform_quit() {
     throwif(back < FILES_STACK, ERROR_USER_UNCLOSED, ERRMSG_UNCLOSED);
     SetConsoleMode(files[1].handle, stdout_mode);
     SetConsoleMode(files[2].handle, stderr_mode);
@@ -126,12 +123,6 @@ void ckit_quit() {
     SetConsoleMode(files[2].handle, stderr_mode);
 #endif
 }
-
-#if CKIT_INIT_PREMAIN
-PREMAIN(premain) {
-    ckit_init();
-}
-#endif
 
 static const char* lasterror() {
     DWORD code = GetLastError();

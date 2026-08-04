@@ -1,6 +1,7 @@
-#include <ckit/utils.h>
+#include <ckit/string.h>
 #include <ckit/config.h>
 #include <ckit/symbols.h>
+#include <ckit/error.h>
 
 CKIT_BUFFERS(tostr, char, CKIT_TOSTR_BUFFER_COUNT, CKIT_TOSTR_BUFFER_SIZE)
 
@@ -391,4 +392,84 @@ const char* bytesstr(size_t value) {
     char* buffer = ckit_tostr_next();
     bytesstr_out(buffer, value);
     return buffer;
+}
+
+void stringdestroy(String* str) {
+    throwif(!str, ERROR_NULLPTR, ERRMSG_NULLPTR(str));
+    if (str->data) { ckit_free(str->data); }
+    CKIT_DESTROY(str);
+}
+String* stringcreate(String* str) {
+    CKIT_CREATE(str, String);
+    str->data = ckit_malloc(CKIT_STRING_MINIMUM_SIZE);
+}
+String* stringduplicate(String* str) {
+    
+}
+String* stringfrom(String* str, const char* src);
+
+char* stringcstr(String* str) {
+    
+}
+size_t stringsize(String* str) {
+    
+}
+
+char* stringat(String* str, size_t index) {
+    
+}
+void stringset(String* str, size_t index, char ch) {
+    
+}
+char stringget(String* str, size_t index) {
+    
+}
+void stringresize(String* str, size_t size) {
+    
+}
+void stringreserve(String* str, size_t capacity) {
+    
+}
+void stringshrink(String* str) {
+    
+}
+void stringclear(String* str) {
+    
+}
+
+void stringerase(String* str, size_t index) {
+    
+}
+void stringpopback(String* str) {
+    
+}
+void stringpopfront(String* str) {
+    
+}
+
+void stringinsert(String* str, size_t index, char ch) {
+    
+}
+void stringpushback(String* str, char ch) {
+    
+}
+void stringpushfront(String* str, char ch) {
+    
+}
+
+void stringfill(String* str, char ch, size_t offset, size_t count) {
+    
+}
+void stringcopy(String* str, const char* src, size_t offset, size_t count) {
+    
+}
+
+void stringappend(String* str, const char* src) {
+    
+}
+void stringappendn(String* str, const char* src, size_t count) {
+    
+}
+void stringappendch(String* str, char ch, size_t coutn) {
+    
 }
