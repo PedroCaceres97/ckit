@@ -114,6 +114,7 @@ debug:
 	@$(MAKE) MODE=debug all
 
 tests: $(addsuffix $(EXEEXT), $(addprefix $(BIN_PATH)/$(TESTS_FOLDER)/,$(TESTS)))
+	@echo $(GREEN)All tests compiled successfully!$(RESET)
 
 tests-debug:
 	@$(MAKE) MODE=debug tests

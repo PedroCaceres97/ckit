@@ -21,9 +21,13 @@ expand_libs = $(addsuffix $(STAEXT),$(1))
 expand_libs_path = $(addprefix $(LIB_PATH_PREFIX),$(1))
 expand_includes = $(addprefix $(INCLUDE_PREFIX),$(1))
 
-CFLAGS := /std:c$(CVERSION) /W4
+CFLAGS := /W4
 LDFLAGS :=
 CPPFLAGS := $(call expand_includes,include)
+
+ifneq ($(strip $(CVERSION)),)
+    CFLAGS += /std:c$(CVERSION)
+endif   
 
 ifeq ($(ENABLE_WARNINGS_AS_ERRORS),1)
 	CFLAGS += /WX

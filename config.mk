@@ -85,7 +85,7 @@ TARGETS := $(DEFAULT)
 # Configuration
 # =====================================
 
-CVERSION := 23
+CVERSION :=
 EXTRA_CFLAGS :=
 EXTRA_LDFLAGS :=
 EXTRA_INCLUDES :=

@@ -1,78 +1,11 @@
 #include <ckit/ansi.h>
-#include <ckit/string.h>
+#include <ckit/format.h>
 #include <ckit/parser.h>
 #include <ckit/config.h>
 #include <ckit/symbols.h>
 
 CKIT_BUFFERS(ansi, char, CKIT_ANSI_BUFFER_COUNT, CKIT_ANSI_BUFFER_SIZE)
 CKIT_BUFFERS(format, char, CKIT_ANSI_FORMAT_BUFFER_COUNT, CKIT_ANSI_FORMAT_BUFFER_SIZE)
-
-const char* ansi256(int n) {
-    char* buffer = ckit_ansi_next();
-    char* start = buffer;
-    bool bg = n & ANSI_BG;
-    *buffer++ = '\x1b';
-    *buffer++ = '[';
-    *buffer++ = bg ? '4' : '3';
-    *buffer++ = '8';
-    *buffer++ = ';';
-    *buffer++ = '5';
-    *buffer++ = ';';
-    buffer += u32str_out(buffer, n & 0xFF, false, false);
-    *buffer++ = 'm';
-    *buffer++ = '\0';
-    return start;
-}
-const char* ansirgb(int r, int g, int b) {
-    char* buffer = ckit_ansi_next();
-    char* start = buffer;
-    bool bg = r & ANSI_BG || g & ANSI_BG || b & ANSI_BG;
-    *buffer++ = '\x1b';
-    *buffer++ = '[';
-    *buffer++ = bg ? '4' : '3';
-    *buffer++ = '8';
-    *buffer++ = ';';
-    *buffer++ = '2';
-    *buffer++ = ';';
-
-    buffer += u32str_out(buffer, r & 0xFF, false, false);
-    *buffer++ = ';';
-    buffer += u32str_out(buffer, g & 0xFF, false, false);
-    *buffer++ = ';';
-    buffer += u32str_out(buffer, b & 0xFF, false, false);
-    *buffer++ = 'm';
-
-    *buffer++ = '\0';
-    return start;
-}
-const char* ansipos(int x, int y) {
-    char* buffer = ckit_ansi_next();
-    char* start = buffer;
-    *buffer++ = '\x1b';
-    *buffer++ = '[';
-    
-    buffer += u32str_out(buffer, y & 0xFFFF, false, false);
-    *buffer++ = ';';
-    buffer += u32str_out(buffer, x & 0xFFFF, false, false);
-    *buffer++ = 'H';
-
-    *buffer++ = '\0';
-    return start;
-}
-const char* ansimove(AnsiDirection direction, int n) {
-    char* buffer = ckit_ansi_next();
-    char* start = buffer;
-    *buffer++ = '\x1b';
-    *buffer++ = '[';
-
-    buffer += u32str_out(buffer, (uint32_t)n, false, false);
-
-    // char directions[4] = {'A', 'B', 'C', 'D'};
-    // *buffer++ = directions[direction];
-    *buffer++ = 'A' + direction;
-    *buffer++ = '\0';
-    return start;
-}
 
 typedef struct {
     const char* ansi;
@@ -157,7 +90,7 @@ static bool match(CkitParser* parser, Token token) {
 
     size_t i = 0;
     size_t len = strlen(token.word);
-    for (; i < len; i++) {
+    for (i = 0; i < len; i++) {
         if (tolower((unsigned char)parser->source[i]) != token.word[i]) {
             return false;
         }
@@ -166,7 +99,7 @@ static bool match(CkitParser* parser, Token token) {
     return true;
 }
 static int __find(CkitParser* parser, const Token* tokens, int count) {
-    if (*parser->source == '\0') { 
+    if (*parser->source == '\0') {
         return -1; 
     }
     for (int i = 0; i < count; i++) {
@@ -261,12 +194,74 @@ static void background(CkitParser* parser) {
     ckit_parser_eqadvance(parser, '}');
 }
 
-const char* ansiformat(const char* fmt, void* userdata, int(*nextint)(void*)) {
+int ansi256_out(char* dest, int n) {
+    int i = 0;
+    bool bg = n & ANSI_BG;
+    dest[i++] = '\x1b';
+    dest[i++] = '[';
+    dest[i++] = bg ? '4' : '3';
+    dest[i++] = '8';
+    dest[i++] = ';';
+    dest[i++] = '5';
+    dest[i++] = ';';
+    i += u32str_out(&dest[i], n & 0xFF, false, false);
+    dest[i++] = 'm';
+    dest[i++] = '\0';
+    return i;
+}
+int ansirgb_out(char* dest, int r, int g, int b) {
+    int i = 0;
+    bool bg = r & ANSI_BG || g & ANSI_BG || b & ANSI_BG;
+    dest[i++] = '\x1b';
+    dest[i++] = '[';
+    dest[i++] = bg ? '4' : '3';
+    dest[i++] = '8';
+    dest[i++] = ';';
+    dest[i++] = '2';
+    dest[i++] = ';';
+
+    i += u32str_out(&dest[i], r & 0xFF, false, false);
+    dest[i++] = ';';
+    i += u32str_out(&dest[i], g & 0xFF, false, false);
+    dest[i++] = ';';
+    i += u32str_out(&dest[i], b & 0xFF, false, false);
+    dest[i++] = 'm';
+
+    dest[i++] = '\0';
+    return i;
+}
+int ansipos_out(char* dest, int x, int y) {
+    int i = 0;
+    dest[i++] = '\x1b';
+    dest[i++] = '[';
+    
+    i += u32str_out(&dest[i], (uint32_t)y, false, false);
+    dest[i++] = ';';
+    i += u32str_out(&dest[i], (uint32_t)x, false, false);
+    dest[i++] = 'H';
+
+    dest[i++] = '\0';
+    return i;
+}
+int ansimove_out(char* dest, AnsiDirection direction, int n) {
+    int i = 0;
+    dest[i++] = '\x1b';
+    dest[i++] = '[';
+
+    i += u32str_out(&dest[i], (uint32_t)n, false, false);
+
+    // char directions[4] = {'A', 'B', 'C', 'D'};
+    // *buffer++ = directions[direction];
+    dest[i++] = 'A' + direction;
+    dest[i++] = '\0';
+    return i;
+}
+int ansiformat_out(char* dest, const char* fmt, void* userdata, int(getint)(void*)) {
     CkitParser parser = {0};
-    parser.buf = ckit_format_next();
+    parser.buf = dest;
     parser.count = CKIT_ANSI_FORMAT_BUFFER_SIZE - 1;
     parser.source = fmt;
-    parser.nextint = nextint;
+    parser.nextint = getint;
     parser.userdata = userdata;
 
     while (*parser.source) {
@@ -281,5 +276,31 @@ const char* ansiformat(const char* fmt, void* userdata, int(*nextint)(void*)) {
     }
 
     ckit_parser_terminate(&parser);
-    return parser.buf;
+    return parser.written;
+}
+
+const char* ansi256(int n) {
+    char* buffer = ckit_ansi_next();
+    ansi256_out(buffer, n);
+    return buffer;
+}
+const char* ansirgb(int r, int g, int b) {
+    char* buffer = ckit_ansi_next();
+    ansirgb_out(buffer, r, g, b);
+    return buffer;
+}
+const char* ansipos(int x, int y) {
+    char* buffer = ckit_ansi_next();
+    ansipos_out(buffer, x, y);
+    return buffer;
+}
+const char* ansimove(AnsiDirection direction, int n) {
+    char* buffer = ckit_ansi_next();
+    ansimove_out(buffer, direction, n);
+    return buffer;
+}
+const char* ansiformat(const char* fmt, void* userdata, int(*getint)(void*)) {
+    char* buffer = ckit_ansi_next();
+    ansiformat_out(buffer, fmt, userdata, getint);
+    return buffer;
 }

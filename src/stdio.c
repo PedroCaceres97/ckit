@@ -94,7 +94,13 @@ void printlog(PrintLog level, const char* fmt, ...) {
     va_start(args, fmt);
     vsnformat(buf, CKIT_FORMAT_BUFFER_SIZE, true, fmt, args);
     va_end(args);
-    fformat(fd, "%-a%-8s%-a%s\n",
+
+/*  Examples:
+ *  LOG     This is a log
+ *  FATAL   NULL ptr catched
+ *  SUCCESS Function successeded
+ */
+    fformat(fd, "%-a%-7s %-a%s\n",
         "[*]",      color, title,
         "[*]",      CKIT_MESSAGE_COLOR, buf
     );
@@ -109,14 +115,24 @@ void printinform(Context context, PrintLog level, const char* fmt, ...) {
     const char* title = LogDatas[level].title;
     if (win) { title = LogDatas[level + 6].title; }
     else if (psx) { title = LogDatas[level + 12].title; }
-    
+
     char buf[CKIT_FORMAT_BUFFER_SIZE] = {0};
     va_list args;
     va_start(args, fmt);
     vsnformat(buf, CKIT_FORMAT_BUFFER_SIZE, true, fmt, args);
     va_end(args);
+
+/*  Examples:
+ *  FATAL
+ *  [CONTEXT]: foo.c:27 -> foo()
+ *  [MESSAGE]: Error in this behaviour
+ * 
+ *  WARNING
+ *  [CONTEXT]: app.c:35 -> main()
+ *  [MESSAGE]: Invalid argument
+ */
     fformat(fd, "%-a%s\n%-a%s  %a%s:%u -> %s()%0a\n%-a%s  %-a%s\n\n",
-        "[*]",      color,          title,
+        "[*]",      color, title,
         "[*]",      CKIT_LABEL_COLOR,    CKIT_LABEL_CONTEXT,
         "[*]+i",    CKIT_CONTEXT_COLOR,  CONTEXT_ARGS(context),
         "[*]",      CKIT_LABEL_COLOR,    CKIT_LABEL_MESSAGE,

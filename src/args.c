@@ -1,3 +1,5 @@
+/*
+
 #include <ckit/args.h>
 #include <ckit/utils.h>
 #include <ckit/error.h>
@@ -166,3 +168,5 @@ int parseargv(Command* root, const char** argv, int argc) {
     args.argv = ++argv;
     return parsecommand(root, &args);
 }
+
+*/

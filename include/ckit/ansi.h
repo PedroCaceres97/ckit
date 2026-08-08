@@ -99,6 +99,12 @@ typedef enum {
 //  ansirgb(r | ANSI_BG, g, b); (or any combination of g | ANSI_BG, b | ANSI_BG)
 #define ANSI_BG 65536 // 0b00010000000000000000
 
+int ansi256_out(char* dest, int n);
+int ansirgb_out(char* dest, int r, int g, int b);
+int ansipos_out(char* dest, int x, int y);
+int ansimove_out(char* dest, AnsiDirection direction, int n);
+int ansiformat_out(char* dest, const char* fmt, void* userdata, int(*getint)(void*));
+
 const char* ansi256     (int n);
 const char* ansirgb     (int r, int g, int b);
 const char* ansipos     (int x, int y);

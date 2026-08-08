@@ -37,7 +37,7 @@ typedef struct Command {
     int countpositionals; // positionals parsed
     bool parsed;
 } Command;
- 
+
 #define ARGS_HELP           1
 #define ARGS_OKAY           0
 #define ARGS_CODER          -1

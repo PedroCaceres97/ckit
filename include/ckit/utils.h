@@ -38,6 +38,6 @@
 #define PTRSUB(ptr, value)  VOIDPTR(BYTEPTR(ptr) - (value))
 #define PTRDST(ptr1, ptr2)  TYPESIZE(DISTANCE(UINTPTR(ptr1), UINTPTR(ptr2)))
 #define PTRDIF(ptr1, ptr2)  TYPEDIFF(UINTPTR(ptr1) >= UINTPTR(ptr2) ? UINTPTR(ptr1) - UINTPTR(ptr2) : -TYPEDIFF(UINTPTR(ptr2) - UINTPTR(ptr1)))
-#define PTRPTR(ptr1, ptr2)  TYPESIZE(BYTEPTR(ptr1) - BYTEPTR(ptr2))
+#define PTRPTR(ptr1, ptr2)  TYPESIZE(UINTPTR(ptr1) - UINTPTR(ptr2))
 
 #endif /* __CKIT_UTILS_H__ */

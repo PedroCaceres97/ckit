@@ -1,6 +1,9 @@
 #ifndef __CKIT_CONFIG_H__
 #define __CKIT_CONFIG_H__
 
+#include <stdint.h>
+#include <stddef.h>
+
 /* --------------------------------------------------------------------------
  * Features
  * -------------------------------------------------------------------------- */
@@ -12,8 +15,6 @@
 #define CKIT_TRACKER_MALLOC(type, bytes) (type*)malloc(bytes)
 #define CKIT_TRACKER_CALLOC(type, count) (type*)calloc(count, sizeof(type))
 #define CKIT_TRACKER_REALLOC(type, ptr, bytes) (type*)realloc(ptr, bytes)
-
-#define CKIT_ENABLE_RWLOCK 0
 
 #define CKIT_ENSURE_DONT_EXIT 0
 #define CKIT_ENSURE_SHORT_LOG 0
@@ -82,14 +83,28 @@
 #define CKIT_INIT_PREMAIN 1
 
 typedef struct CkitInfo {
+    /* Error Printing*/
+
+    void (*printout)(const char* msg);
+    void (*printerr)(const char* msg);
+
+    /* Internal allocators */
+
     void (*free)(void* ptr);
-    void* (*malloc)(size_t bytes);
-    void* (*calloc)(size_t count, size_t size);
+    void* (*malloc)(size_t bytes);              // Must zero initialize
+    void* (*calloc)(size_t count, size_t size); // Must zero initialize
     void* (*realloc)(void* ptr, size_t bytes);
 } CkitInfo;
 
 void ckit_init(CkitInfo info);
 void ckit_quit();
+
+/* Error Printing */
+
+void ckit_printout(const char* msg);
+void ckit_printerr(const char* msg);
+
+/* Internal allocators */
 
 void ckit_free(void* ptr);
 void* ckit_malloc(size_t bytes);

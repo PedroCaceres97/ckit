@@ -5,8 +5,15 @@
 static void default_callback(void* userdata, Context context, ErrorCode code, const char* msg) {
     (void)userdata;
     PrintLog log = 0;
+
     if (code & ERROR_WINDOWS) { log = PRINT_WINAPI; }
     else if (code & ERROR_POSIX) { log = PRINT_POSIX; }
+    
+    if (iserror(code, ERROR_STDOUT_INVALID) || iserror(code, ERROR_STDERR_INVALID)) {
+        ckit_printerr("[WINAPI] FATAL\n  ");
+        ckit_printerr(msg);
+    }
+
     if (code & ERROR_SOFT) { printlog(log | PRINT_WARNING, msg); }
     else if (code & ERROR_HARD) { printinform(context, log | PRINT_ERROR, msg); exit(-1); }
 }

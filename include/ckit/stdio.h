@@ -5,23 +5,14 @@
 #include <ckit/config.h>
 
 typedef enum {
-    BIT_ATTRIBUTE_READ,
-    BIT_ATTRIBUTE_WRITE,
-    BIT_ATTRIBUTE_CREATE,
-    BIT_ATTRIBUTE_TRUNCATE,
-    BIT_ATTRIBUTE_IFNEW,
-    BIT_ATTRIBUTE_ANSI
-} FileAttributesBit;
-
-typedef enum {
     ATTRIBUTE_NONE      = 0 << 0,
-    ATTRIBUTE_READ      = 1 << BIT_ATTRIBUTE_READ,
-    ATTRIBUTE_WRITE     = 1 << BIT_ATTRIBUTE_WRITE,
-    ATTRIBUTE_CREATE    = 1 << BIT_ATTRIBUTE_CREATE,
-    ATTRIBUTE_TRUNCATE  = 1 << BIT_ATTRIBUTE_TRUNCATE,
-    ATTRIBUTE_IFNEW     = 1 << BIT_ATTRIBUTE_IFNEW,
-    ATTRIBUTE_ANSI      = 1 << BIT_ATTRIBUTE_ANSI,
-    ATTRIBUTE_ISOPEN    = 65536
+    ATTRIBUTE_READ      = 1 << 0,
+    ATTRIBUTE_WRITE     = 1 << 1,
+    ATTRIBUTE_CREATE    = 1 << 2,
+    ATTRIBUTE_TRUNCATE  = 1 << 3,
+    ATTRIBUTE_IFNEW     = 1 << 4,
+    ATTRIBUTE_ANSI      = 1 << 5,
+    ATTRIBUTE_ISOPEN    = 1 << 16
 } FileAttributes;
 
 typedef enum {

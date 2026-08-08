@@ -20,9 +20,13 @@ expand_libs = $(addprefix $(LIB_PREFIX),$(1))
 expand_libs_path = $(addprefix $(LIB_PATH_PREFIX),$(1))
 expand_includes = $(addprefix $(INCLUDE_PREFIX),$(1))
 
-CFLAGS := -std=gnu$(CVERSION) -MMD -MP -Wall -Wextra
+CFLAGS := -MMD -MP -Wall -Wextra
 LDFLAGS :=
 CPPFLAGS := $(call expand_includes,include)
+
+ifneq ($(strip $(CVERSION)),)
+    CFLAGS += -std=gnu$(CVERSION)
+endif   
 
 ifeq ($(ENABLE_WARNINGS_AS_ERRORS),1)
 	CFLAGS += -Werror

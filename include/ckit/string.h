@@ -4,34 +4,6 @@
 #include <ckit/info.h>
 #include <ckit/utils.h>
 
-int i32str_out(char* dest, int32_t value, bool plus, bool space);
-int i64str_out(char* dest, int64_t value, bool plus, bool space);
-int u32str_out(char* dest, uint32_t value, bool plus, bool space);
-int u64str_out(char* dest, uint64_t value, bool plus, bool space);
-int x32str_out(char* dest, uint32_t value, bool x);
-int x64str_out(char* dest, uint64_t value, bool x);
-int f32str_out(char* dest, float value, int precision, bool plus, bool space);
-int f64str_out(char* dest, double value, int precision, bool plus, bool space);
-int ptrstr_out(char* dest, void* value);
-int sizestr_out(char* dest, size_t value);
-int diffstr_out(char* dest, ptrdiff_t value);
-int bytesstr_out(char* dest, size_t value);
-#define boolstr_out(dest, value) strcpy(dest, TERNARY(!!(value), "Yes", "No"))
-
-const char* i32str(int32_t value, bool plus, bool space);
-const char* i64str(int64_t value, bool plus, bool space);
-const char* u32str(uint32_t value, bool plus, bool space);
-const char* u64str(uint64_t value, bool plus, bool space);
-const char* x32str(uint32_t value, bool x);
-const char* x64str(uint64_t value, bool x);
-const char* f32str(float value, int precision, bool plus, bool space);
-const char* f64str(double value, int precision, bool plus, bool space);
-const char* ptrstr(void* value);
-const char* sizestr(size_t value);
-const char* diffstr(ptrdiff_t value);
-const char* bytesstr(size_t value);
-#define boolstr(value) TERNARY(!!(value), "Yes", "No")
-
 typedef struct String {
     char* data;
     size_t size;
@@ -39,35 +11,36 @@ typedef struct String {
     bool allocated;
 } String;
 
-void stringdestroy(String* str);
-String* stringcreate(String* str);
-String* stringduplicate(String* str);
-String* stringfrom(String* str, const char* src);
+void string_destroy(String* str);
+String* string_from(String* str, const char* src);
+String* string_create(String* str);
+String* string_duplicate(String* str, String* src);
 
-char* stringcstr(String* str);
-size_t stringsize(String* str);
+char* string_data(String* str);
+size_t string_size(String* str);
+size_t string_capacity(String* str);
 
-char* stringat(String* str, size_t index);
-void stringset(String* str, size_t index, char ch);
-char stringget(String* str, size_t index);
-void stringresize(String* str, size_t size);
-void stringreserve(String* str, size_t capacity);
-void stringshrink(String* str);
-void stringclear(String* str);
+char* string_at(String* str, size_t index);
+char string_get(String* str, size_t index);
+void string_set(String* str, size_t index, char ch);
 
-void stringerase(String* str, size_t index);
-void stringpopback(String* str);
-void stringpopfront(String* str);
+void string_clear(String* str);
+void string_shrink(String* str);
+void string_resize(String* str, size_t size);
+void string_reserve(String* str, size_t capacity);
 
-void stringinsert(String* str, size_t index, char ch);
-void stringpushback(String* str, char ch);
-void stringpushfront(String* str, char ch);
+void string_erase(String* str, size_t index);
+void string_popback(String* str);
+void string_popfront(String* str);
 
-void stringfill(String* str, char ch, size_t offset, size_t count);
-void stringcopy(String* str, const char* src, size_t offset, size_t count);
+void string_insert(String* str, size_t index, char ch);
+void string_pushback(String* str, char ch);
+void string_pushfront(String* str, char ch);
 
-void stringappend(String* str, const char* src);
-void stringappendn(String* str, const char* src, size_t count);
-void stringappendch(String* str, char ch, size_t coutn);
+void string_fill(String* str, char ch, size_t offset, size_t count);
+void string_copy(String* str, const char* src, size_t offset, size_t count);
+void string_append(String* str, const char* src);
+void string_appendn(String* str, const char* src, size_t count);
+void string_appendch(String* str, char ch, size_t coutn);
 
 #endif /* __CKIT_STRING_H__ */

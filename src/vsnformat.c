@@ -1,6 +1,6 @@
 #include <ckit/ansi.h>
 #include <ckit/stdio.h>
-#include <ckit/string.h>
+#include <ckit/format.h>
 #include <ckit/parser.h>
 #include <ckit/config.h>
 #include <ckit/utils.h>
@@ -34,8 +34,8 @@ typedef struct {
     bool            enabled;
 } CkitFormat;
 
-static thread_local char slot[CKIT_ANSI_FORMAT_BUFFER_SIZE] = {0};
-static thread_local char slots[CKIT_ANSI_FORMAT_BUFFER_SIZE][CKIT_FORMAT_ANSI_SLOT_BUFFER_COUNT] = {0};
+static char slot[CKIT_ANSI_FORMAT_BUFFER_SIZE] = {0};
+static char slots[CKIT_ANSI_FORMAT_BUFFER_SIZE][CKIT_FORMAT_ANSI_SLOT_BUFFER_COUNT] = {0};
 
 typedef int32_t i32;
 typedef int64_t i64;

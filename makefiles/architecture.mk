@@ -26,9 +26,20 @@ ifeq ($(OS),Windows_NT)
     RMDIR = if exist "$(1)" rmdir /S /Q "$(1)"
     EXEEXT := .exe
     ECHO_BLANK = echo.
+    ESC := $(shell powershell -NoProfile -Command "[char]27")
 else
     MKDIR = mkdir -p "$(1)"
     RMDIR = rm -rf "$(1)"
     EXEEXT :=
     ECHO_BLANK = printf "\n"
+    ESC := $(shell printf '\033')
 endif
+
+RESET   := $(ESC)[0m
+RED     := $(ESC)[31m
+GREEN   := $(ESC)[32m
+YELLOW  := $(ESC)[33m
+BLUE    := $(ESC)[34m
+CYAN    := $(ESC)[36m
+ORANGE  := $(ESC)[38;5;208m
+GRAY    := $(ESC)[38;5;242m
