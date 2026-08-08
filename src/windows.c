@@ -134,11 +134,11 @@ static const char* lasterror() {
     while (*end) { end++; }
     while (end > buffer && *end <= 32) { *end-- = 0; };
     if (errorpath != NULL) {
-        // &errorpath[4] -> skip "\\\\?\\"
         char temp[CKIT_LONGPATH_BUFFER_SIZE] = {0};
         char* cursor = temp;
         *end++ = ' ';
         *end++ = '(';
+        // &errorpath[4] -> skip "\\\\?\\"
         WideCharToMultiByte(CP_UTF8, 0, &errorpath[4], -1, temp, sizeof(temp), NULL, NULL);
         while(*cursor) { *end++ = *cursor++; }
         errorpath = NULL;
@@ -322,37 +322,35 @@ FileAttributes attributes(int fd) {
 }
 
 int countdir(const char* dirpath) {
-    ithrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(dirpath));
+    ithrownull(dirpath);
     wchar_t* path = longpath(dirpath);
     return countlongdir(path);
 }
 bool copydir(const char* dirpath, const char* destpath) {
-    zthrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
-    zthrowif(!destpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(destpath));
-    
+    zthrownull(dirpath);
+    zthrownull(destpath);
     wchar_t* longdir = longpath(dirpath);
     wchar_t* longdest = longpath(destpath);
     return copylongdir(longdir, longdest);
 }
 bool checkdir(const char* dirpath) {
-    zthrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(dirpath));
+    zthrownull(dirpath);
     wchar_t* path = longpath(dirpath);
     return checklongdir(path);
 }
 bool createdir(const char* dirpath) {
-    zthrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(dirpath));
+    zthrownull(dirpath);
     wchar_t* path = longpath(dirpath);
     return createlongdir(path);
 }
 bool removedir(const char* dirpath, bool force) {
-    zthrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(dirpath));
+    zthrownull(dirpath);
     wchar_t* path = longpath(dirpath);
     return removelongdir(path, force);
 }
 bool renamedir(const char* dirpath, const char* destpath) { 
-    zthrowif(!dirpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
-    zthrowif(!destpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(destpath));
-    
+    zthrownull(dirpath);
+    zthrownull(destpath);
     wchar_t* longdir = longpath(dirpath);
     wchar_t* longdest = longpath(destpath);
     if (!MoveFileW(longdir, longdest)) {
@@ -365,9 +363,8 @@ bool renamedir(const char* dirpath, const char* destpath) {
 }
 
 bool copyfile(const char* filepath, const char* destpath) {
-    zthrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
-    zthrowif(!destpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(destpath));
-    
+    zthrownull(filepath);
+    zthrownull(destpath);
     wchar_t* longfile = longpath(filepath);
     wchar_t* longdest = longpath(destpath);
     size_t lendir = wcslen(longfile);
@@ -388,13 +385,12 @@ bool copyfile(const char* filepath, const char* destpath) {
     return true;
 }
 bool checkfile(const char* filepath) {
-    zthrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
+    zthrownull(filepath);
     wchar_t* path = longpath(filepath);
     return checklongfile(path);
 }
 bool createfile(const char* filepath) {
-    zthrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
-
+    zthrownull(filepath);
     DWORD access = GENERIC_READ;
     DWORD creation = CREATE_ALWAYS;
     wchar_t* path = longpath(filepath);
@@ -404,16 +400,14 @@ bool createfile(const char* filepath) {
     return true;
 }
 bool removefile(const char* filepath) {
-    zthrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
-    
+    zthrownull(filepath);
     wchar_t* path = longpath(filepath);
     winpath_zthrowif(path, !DeleteFileW(path) && GetLastError() != ERROR_FILE_NOT_FOUND);
     return true;
 }
 bool renamefile(const char* filepath, const char* destpath) {
-    zthrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
-    zthrowif(!destpath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(destpath));
-    
+    zthrownull(filepath);
+    zthrownull(destpath);
     wchar_t* longfile = longpath(filepath);
     wchar_t* longdest = longpath(destpath);
     if (!MoveFileW(longfile, longdest)) {
@@ -426,8 +420,7 @@ bool renamefile(const char* filepath, const char* destpath) {
 }
 
 int openfile(const char* filepath, FileAttributes attributes) {
-    ithrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
-    
+    ithrownull(filepath);
     ithrowif(back == 0, ERROR_HARD_USER | ERROR_MAX_REACHED, ERRMSG_FILES_MAX_REACHED);
     int fd = stack[--back];
     stack[back] = 0;
@@ -462,7 +455,7 @@ void closefile(int fd) {
     stack[back++] = fd;
 }
 size_t dumpfile(const char* filepath, char* buf, size_t max) {
-    ithrowif(!filepath, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(filepath));
+    ithrownull(filepath);
     ithrowif(!buf, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(buf));
     if (max == 0) { return 0; }
 
@@ -479,7 +472,7 @@ size_t dumpfile(const char* filepath, char* buf, size_t max) {
     return (size_t)readed;
 }
 size_t readfile(int fd, char* buf, size_t max) {
-    zthrowif(!buf, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(buf));
+    zthrownull(buf);
     zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_USER_INVALID_FD, ERRMSG_INVALID_FD);
     zthrowif(!(files[fd].attributes & ATTRIBUTE_READ), ERROR_USER_UNREADABLE, ERRMSG_UNREADABLE);
     zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_USER_UNOPENED, ERRMSG_UNOPENED);
@@ -491,7 +484,7 @@ size_t readfile(int fd, char* buf, size_t max) {
     return (size_t)readed;
 }
 size_t writefile(int fd, const char* buf, size_t max) {
-    zthrowif(!buf, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(buf));
+    zthrownull(buf);
     zthrowif(fd < 0 || fd >= FILES_COUNT, ERROR_USER_INVALID_FD, ERRMSG_INVALID_FD);
     zthrowif(!(files[fd].attributes & ATTRIBUTE_WRITE), ERROR_USER_UNWRITEABLE, ERRMSG_UNWRITEABLE);
     zthrowif(!(files[fd].attributes & (ATTRIBUTE_ISOPEN | ATTRIBUTE_IFNEW)), ERROR_USER_UNOPENED, ERRMSG_UNOPENED);
@@ -502,7 +495,6 @@ size_t writefile(int fd, const char* buf, size_t max) {
     return (size_t)written;
 }
 size_t printfile(int fd, const char* buf) {
-    zthrowif(!buf, ERROR_USER_NULLPTR, ERRMSG_NULLPTR(buf));
     return writefile(fd, buf, strlen(buf));
 }
 size_t sizefile(int fd) {

@@ -43,6 +43,13 @@ void ckit_init(CkitInfo info) {
 #if CKIT_QUIT_ATEXIT
     atexit(ckit_quit);
 #endif
+    vthrownull(info.printout);
+    vthrownull(info.printerr);
+    vthrownull(info.free);
+    vthrownull(info.malloc);
+    vthrownull(info.calloc);
+    vthrownull(info.realloc);
+
     ckit_info = info;
     ckit_platform_init();
 }

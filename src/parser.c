@@ -1,5 +1,6 @@
 #include <ckit/parser.h>
 #include <ckit/utils.h>
+#include <ckit/error.h>
 
 static inline bool writable(CkitParser* parser) {
     return parser->written < parser->count && parser->buf != NULL;
@@ -62,6 +63,7 @@ bool ckit_parser_copyuntil(CkitParser* parser, char ch) {
 bool ckit_parser_unsigned(CkitParser* parser, int* value) {
     *value = 0;
     if (ckit_parser_eqadvance(parser, '*')) {
+        zthrownull(parser->nextint);
         *value = parser->nextint(parser->userdata);
         if (*value < 0) {
             value = 0;

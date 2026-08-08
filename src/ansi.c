@@ -3,6 +3,7 @@
 #include <ckit/parser.h>
 #include <ckit/config.h>
 #include <ckit/symbols.h>
+#include <ckit/error.h>
 
 CKIT_BUFFERS(ansi, char, CKIT_ANSI_BUFFER_COUNT, CKIT_ANSI_BUFFER_SIZE)
 CKIT_BUFFERS(format, char, CKIT_ANSI_FORMAT_BUFFER_COUNT, CKIT_ANSI_FORMAT_BUFFER_SIZE)
@@ -257,6 +258,8 @@ int ansimove_out(char* dest, AnsiDirection direction, int n) {
     return i;
 }
 int ansiformat_out(char* dest, const char* fmt, void* userdata, int(getint)(void*)) {
+    zthrownull(dest);
+    zthrownull(fmt);
     CkitParser parser = {0};
     parser.buf = dest;
     parser.count = CKIT_ANSI_FORMAT_BUFFER_SIZE - 1;

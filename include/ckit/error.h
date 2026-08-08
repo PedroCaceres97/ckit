@@ -31,7 +31,7 @@
 #define ERRMSG_RENAMEDIR_REPLACE    "Cant rename a directory into an already existent directory"
 
 #define ERRMSG_NULLPTR(ptr)         "Memory address is a nullptr -> " LITERAL(ptr)
-#define ERRFMT_BOUNDS               "Index (%zu) exceeds bounds (%zu)"
+#define ERRFMT_BOUNDS               "Index %zu out of bounds (size %zu)"
 #define ERRMSG_ZERO_SIZE(v)         "Unexpected zero value in " LITERAL(v)
 #define ERRMSG_FOREIGN_PTR          "Memory address does not belong to struct"
 #define ERRMSG_ALREADY_FREE         "Memory address is already free"
